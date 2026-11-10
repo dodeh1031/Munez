@@ -3,6 +3,10 @@
     "curriculum-kr": {
       "command": "npx",
       "args": ["-y", "korean-elementary-learning-map-mcp"]
+    },
+    "curriculum-kr-secondary": {
+      "command": "npx",
+      "args": ["-y", "korean-secondary-learning-map-mcp"]
     }
   }
 }
