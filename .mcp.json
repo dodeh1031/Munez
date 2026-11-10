@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "curriculum-kr": {
+      "command": "npx",
+      "args": ["-y", "korean-elementary-learning-map-mcp"]
+    }
+  }
+}
