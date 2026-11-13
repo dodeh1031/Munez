@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#F4EFE4">
+  <meta name="color-scheme" content="light">
+  <meta name="format-detection" content="telephone=no">
+  <title>단계 안내</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    :root {
+      --bg: #F4EFE4;
+      --surface: #FFFCF7;
+      --text: #1C1917;
+      --muted: #57534E;
+      --line: #E7E0D4;
+      --accent: #0F766E;
+      --accent-text: #FFFFFF;
+      --accent-soft: #D1FAF5;
+      --danger: #B45309;
+      --danger-bg: #FEF3C7;
+      --ok: #0F766E;
+      --shadow: 0 8px 28px rgba(28, 25, 23, 0.08);
+      --focus: #0F766E;
+      --tap-hint: rgba(15, 118, 110, 0.12);
+      --radius: 20px;
+      --font: system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Noto Sans CJK KR", "Malgun Gothic", sans-serif;
+      --step-size: 2.15rem;
+      --emoji-size: 7.2rem;
+      --title-size: 1.65rem;
+      --ui-size: 1.05rem;
+    }
+
+    html[data-contrast="high"] {
+      --bg: #000000;
+      --surface: #0A0A0A;
+      --text: #FFFFFF;
+      --muted: #FFE566;
+      --line: #FFE566;
+      --accent: #FFE566;
+      --accent-text: #000000;
+      --accent-soft: #1A1600;
+      --danger: #FFD60A;
+      --danger-bg: #1A1600;
+      --ok: #FFE566;
+      --shadow: none;
+      --focus: #FFE566;
+      --tap-hint: rgba(255, 229, 102, 0.18);
+    }
+
+    html[data-large="true"] {
+      --step-size: 2.7rem;
+      --emoji-size: 8.2rem;
+      --title-size: 2rem;
+      --ui-size: 1.22rem;
+    }
+
+    html[data-symbols="off"] .symbol { display: none !important; }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: var(--ui-size);
+      line-height: 1.45;
+    }
+    body { min-height: 100dvh; }
+
+    button, input, textarea, select { font: inherit; color: inherit; }
+    button {
+      appearance: none;
+      border: 0;
+      background: none;
+      padding: 0;
+      cursor: pointer;
+    }
+    button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 3px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    #app { min-height: 100dvh; }
+
+    .screen {
+      display: none;
+      min-height: 100dvh;
+      min-height: 100svh;
+      padding: calc(16px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom));
+    }
+    .screen.active { display: flex; flex-direction: column; }
+
+    .top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 48px;
+    }
+    .top-row.bar {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+    }
+    .top-row.bar > :first-child { justify-self: start; }
+    .top-row.bar > :last-child { justify-self: end; }
+    .app-title {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 750;
+      letter-spacing: -0.02em;
+    }
+    .muted { color: var(--muted); }
+    .tiny { font-size: 0.88rem; }
+
+    .teacher-hotspot {
+      min-width: 48px;
+      min-height: 48px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      color: var(--muted);
+      border: 2px solid transparent;
+      font-size: 0.82rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      user-select: none;
+    }
+    html[data-contrast="high"] .teacher-hotspot { border-color: var(--line); color: var(--text); }
+    .teacher-hotspot[aria-pressed="true"],
+    .teacher-hotspot.is-holding { background: var(--accent-soft); color: var(--text); }
+
+    .grow { flex: 1; display: flex; flex-direction: column; }
+
+    .activity-hero {
+      margin-top: 28px;
+      background: var(--surface);
+      border: 2px solid var(--line);
+      border-radius: calc(var(--radius) + 8px);
+      box-shadow: var(--shadow);
+      padding: 28px 20px 24px;
+      text-align: center;
+    }
+    .hero-emoji {
+      font-size: 5.2rem;
+      line-height: 1;
+      margin: 0 0 12px;
+    }
+    .hero-name {
+      margin: 0;
+      font-size: var(--title-size);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+    .hero-meta { margin: 8px 0 0; color: var(--muted); font-weight: 600; }
+
+    .activity-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+    .activity-choice {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      text-align: left;
+      background: var(--surface);
+      border: 2px solid var(--line);
+      border-radius: 16px;
+      padding: 12px 14px;
+      min-height: 56px;
+      font-weight: 700;
+    }
+    .activity-choice[aria-pressed="true"] {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .choice-emoji { font-size: 1.6rem; width: 2rem; text-align: center; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 56px;
+      padding: 12px 20px;
+      border-radius: 18px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      border: 2px solid transparent;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: var(--accent-text);
+    }
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border-color: var(--line);
+    }
+    .btn-danger {
+      background: var(--danger-bg);
+      color: var(--danger);
+      border-color: var(--danger);
+    }
+    .btn-block { width: 100%; }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-lg { min-height: 72px; font-size: 1.35rem; border-radius: 22px; margin-top: auto; }
+
+    .hint-card {
+      margin-top: 18px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: var(--accent-soft);
+      color: var(--text);
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    html[data-contrast="high"] .hint-card { border: 2px solid var(--line); }
+
+    /* Play */
+    #screen-play {
+      padding: 0;
+      position: relative;
+      overflow: hidden;
+    }
+    #tap-zone {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      min-height: 100dvh;
+      min-height: 100svh;
+      padding: calc(12px + env(safe-area-inset-top)) 20px calc(16px + env(safe-area-inset-bottom));
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      cursor: pointer;
+    }
+    .play-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 2;
+    }
+    .step-count {
+      font-weight: 800;
+      font-size: 1.15rem;
+      color: var(--muted);
+    }
+    .play-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 10px;
+      pointer-events: none;
+    }
+    .step-emoji {
+      font-size: var(--emoji-size);
+      line-height: 1;
+      margin: 0;
+    }
+    .step-text {
+      margin: 8px 0 0;
+      font-size: var(--step-size);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.25;
+      max-width: 16ch;
+    }
+    .progress {
+      display: flex;
+      gap: 8px;
+      margin-top: 22px;
+      justify-content: center;
+    }
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--line);
+      border: 2px solid var(--line);
+    }
+    .dot.done { background: var(--accent); border-color: var(--accent); }
+    .dot.current {
+      background: var(--accent);
+      border-color: var(--accent);
+      transform: scale(1.25);
+    }
+    html[data-contrast="high"] .dot { background: #000; }
+    html[data-contrast="high"] .dot.done,
+    html[data-contrast="high"] .dot.current { background: var(--accent); }
+
+    .timer-wrap {
+      margin-top: 22px;
+      width: min(260px, 80vw);
+    }
+    .timer-num {
+      font-size: 3rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+    .timer-label { margin-top: 4px; color: var(--muted); font-weight: 700; }
+    .timer-bar {
+      margin-top: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--line);
+      overflow: hidden;
+    }
+    .timer-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      border-radius: inherit;
+      transition: width 200ms linear;
+    }
+    .timer-wrap.is-done .timer-num { color: var(--ok); }
+    @media (prefers-reduced-motion: reduce) {
+      .timer-fill { transition: none; }
+      .dot.current { transform: none; }
+      .cue { transition: none !important; }
+    }
+
+    .gesture-hint {
+      margin-top: auto;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 650;
+      pointer-events: none;
+    }
+
+    .hold-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: transparent;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .hold-bar > span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: var(--accent);
+    }
+    .hold-bar.is-on > span { width: 100%; transition: width 750ms linear; }
+    @media (prefers-reduced-motion: reduce) {
+      .hold-bar.is-on > span { transition: none; width: 100%; }
+    }
+
+    .cue {
+      position: absolute;
+      left: 50%;
+      bottom: calc(72px + env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      background: var(--text);
+      color: var(--bg);
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-weight: 800;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 4;
+    }
+    html[data-contrast="high"] .cue {
+      background: var(--accent);
+      color: var(--accent-text);
+      border: 2px solid var(--accent);
+    }
+    .cue.show { opacity: 1; transition: opacity 160ms ease; }
+
+    .play-top .teacher-hotspot { pointer-events: auto; }
+
+    /* Done */
+    #screen-done .done-mark { font-size: 5.5rem; line-height: 1; text-align: center; margin-top: 18vh; }
+    #screen-done h1 { text-align: center; font-size: 2.4rem; margin: 12px 0 0; letter-spacing: -0.04em; }
+    #screen-done p { text-align: center; }
+
+    /* Teacher */
+    #screen-teacher, #screen-edit {
+      overflow: auto;
+    }
+    .panel-title { margin: 8px 0 4px; font-size: 1.45rem; font-weight: 800; letter-spacing: -0.03em; }
+    .section-title {
+      margin: 16px 0 8px;
+      font-size: 1.02rem;
+      font-weight: 800;
+    }
+    .card {
+      background: var(--surface);
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+      padding: 2px 0;
+      box-shadow: var(--shadow);
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 14px;
+      min-height: 52px;
+      border-top: 1px solid var(--line);
+    }
+    .row:first-child { border-top: 0; }
+    .row-label { font-weight: 700; }
+    .row-help { display: block; font-size: 0.82rem; font-weight: 500; color: var(--muted); margin-top: 2px; }
+
+    .switch {
+      position: relative;
+      width: 56px;
+      height: 32px;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      background: var(--line);
+      border: 2px solid var(--line);
+    }
+    .switch[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
+    .switch > i {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--surface);
+      transition: left 120ms ease;
+    }
+    html[data-contrast="high"] .switch > i { background: #000; }
+    .switch[aria-checked="true"] > i { left: 26px; }
+    html[data-contrast="high"] .switch[aria-checked="true"] > i { background: #000; }
+
+    .seg {
+      display: flex;
+      gap: 6px;
+    }
+    .seg button {
+      min-height: 44px;
+      padding: 0 14px;
+      border-radius: 12px;
+      border: 2px solid var(--line);
+      background: var(--bg);
+      font-weight: 800;
+    }
+    .seg button[aria-pressed="true"] {
+      background: var(--accent);
+      color: var(--accent-text);
+      border-color: var(--accent);
+    }
+
+    input[type="range"] { width: 120px; accent-color: var(--accent); }
+    input[type="text"], textarea {
+      width: 100%;
+      border: 2px solid var(--line);
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 10px 12px;
+      min-height: 48px;
+    }
+    .note {
+      margin: 10px 0 0;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: var(--surface);
+      border: 2px solid var(--line);
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+    .activity-admin { display: flex; flex-direction: column; gap: 10px; }
+    .admin-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface);
+      border: 2px solid var(--line);
+      border-radius: 16px;
+      padding: 10px;
+    }
+    .admin-item .info { flex: 1; text-align: left; font-weight: 800; min-width: 0; }
+    .admin-item .info small { display: block; font-weight: 600; color: var(--muted); }
+    .icon-btn {
+      min-width: 48px;
+      min-height: 48px;
+      border-radius: 14px;
+      border: 2px solid var(--line);
+      background: var(--bg);
+      font-weight: 800;
+    }
+
+    .step-editor {
+      background: var(--surface);
+      border: 2px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .step-editor-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-weight: 800;
+    }
+    .emoji-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 8px 0 12px;
+    }
+    .emoji-grid button {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      border: 2px solid var(--line);
+      font-size: 1.35rem;
+      background: var(--bg);
+    }
+    .emoji-grid button[aria-pressed="true"] {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .field { margin: 8px 0; }
+    .field label { display: block; font-size: 0.86rem; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+    .inline-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .toolbar { display: flex; gap: 8px; margin: 8px 0 12px; flex-wrap: wrap; }
+    .voice-status { font-size: 0.86rem; font-weight: 700; color: var(--muted); min-height: 1.2em; }
+    .voice-status.on { color: var(--ok); }
+
+    footer.legal {
+      margin-top: 22px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="live" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
+
+    <section id="screen-home" class="screen active" aria-labelledby="home-title">
+      <div class="top-row">
+        <h1 id="home-title" class="app-title">단계 안내</h1>
+        <button type="button" class="teacher-hotspot" data-open-teacher aria-label="교사 설정, 길게 누르기">교사</button>
+      </div>
+      <div class="grow">
+        <div class="activity-hero">
+          <p class="hero-emoji symbol" id="home-emoji" aria-hidden="true">💧</p>
+          <h2 class="hero-name" id="home-name">손 씻기</h2>
+          <p class="hero-meta" id="home-meta">5단계</p>
+        </div>
+        <div id="home-choices" class="activity-list" hidden></div>
+        <p class="hint-card">한 번 탭하면 다음, 두 번 탭하면 다시 듣기, 길게 누르면 처음, 오른쪽으로 밀면 이전이에요.</p>
+        <button type="button" class="btn btn-primary btn-block btn-lg" id="btn-start">시작</button>
+      </div>
+    </section>
+
+    <section id="screen-play" class="screen" aria-labelledby="step-text">
+      <div class="hold-bar" id="hold-bar" aria-hidden="true"><span></span></div>
+      <div id="tap-zone" role="button" tabindex="0" aria-describedby="gesture-hint">
+        <div class="play-top">
+          <div class="step-count" id="step-count">1 / 5</div>
+          <button type="button" class="teacher-hotspot" data-open-teacher aria-label="교사 설정, 길게 누르기">교사</button>
+        </div>
+        <div class="play-main">
+          <p class="step-emoji symbol" id="step-emoji" aria-hidden="true">💧</p>
+          <h1 class="step-text" id="step-text">물 틀기</h1>
+          <div class="progress" id="progress" aria-hidden="true"></div>
+          <div class="timer-wrap" id="timer-wrap" hidden>
+            <div class="timer-num" id="timer-num">30</div>
+            <div class="timer-label" id="timer-label">초</div>
+            <div class="timer-bar" aria-hidden="true"><div class="timer-fill" id="timer-fill"></div></div>
+          </div>
+        </div>
+        <p class="gesture-hint" id="gesture-hint">한 번 탭: 다음 · 두 번 탭: 다시 듣기 · 길게: 처음 · 오른쪽으로 밀기: 이전</p>
+      </div>
+      <div class="cue" id="cue" aria-hidden="true"></div>
+    </section>
+
+    <section id="screen-done" class="screen" aria-labelledby="done-title">
+      <div class="top-row">
+        <h1 class="app-title">단계 안내</h1>
+        <button type="button" class="teacher-hotspot" data-open-teacher aria-label="교사 설정, 길게 누르기">교사</button>
+      </div>
+      <p class="done-mark symbol" aria-hidden="true">👏</p>
+      <h1 id="done-title">잘했어요!</h1>
+      <p class="muted" id="done-sub">처음 화면으로 돌아가요.</p>
+      <button type="button" class="btn btn-primary btn-block btn-lg" id="btn-home">처음 화면으로</button>
+    </section>
+
+    <section id="screen-teacher" class="screen" aria-labelledby="teacher-title">
+      <div class="top-row bar">
+        <button type="button" class="btn btn-secondary" id="btn-student" style="min-height:48px;padding:8px 14px">학생 화면</button>
+        <h1 id="teacher-title" class="panel-title" style="margin:0">교사 설정</h1>
+        <span></span>
+      </div>
+
+      <h2 class="section-title">화면과 소리</h2>
+      <div class="card">
+        <div class="row">
+          <div>
+            <div class="row-label">화면 상징 보이기</div>
+            <span class="row-help">끄면 소리와 글자만 보여요.</span>
+          </div>
+          <button type="button" class="switch" id="set-symbols" role="switch" aria-checked="true" aria-label="화면 상징 보이기"><i></i></button>
+        </div>
+        <div class="row">
+          <div>
+            <div class="row-label">고대비 화면</div>
+            <span class="row-help">검은 바탕에 밝은 글자</span>
+          </div>
+          <button type="button" class="switch" id="set-contrast" role="switch" aria-checked="false" aria-label="고대비 화면"><i></i></button>
+        </div>
+        <div class="row">
+          <div>
+            <div class="row-label">큰 글자</div>
+          </div>
+          <button type="button" class="switch" id="set-large" role="switch" aria-checked="false" aria-label="큰 글자"><i></i></button>
+        </div>
+        <div class="row">
+          <div>
+            <div class="row-label">말하기 속도</div>
+          </div>
+          <div class="seg" role="group" aria-label="말하기 속도">
+            <button type="button" id="rate-slow" aria-pressed="true">느리게</button>
+            <button type="button" id="rate-normal" aria-pressed="false">보통</button>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <div class="row-label">앱 소리 크기</div>
+            <span class="row-help">휴대전화 음량도 확인해 주세요.</span>
+          </div>
+          <input type="range" id="set-volume" min="0.2" max="1" step="0.1" value="1" aria-label="앱 소리 크기">
+        </div>
+        <div class="row">
+          <div>
+            <div class="row-label">타이머를 소리로 세기</div>
+            <span class="row-help">10초마다 짧게 알려 줘요.</span>
+          </div>
+          <button type="button" class="switch" id="set-count" role="switch" aria-checked="true" aria-label="타이머를 소리로 세기"><i></i></button>
+        </div>
+        <div class="row" style="flex-direction:column;align-items:stretch">
+          <label class="row-label" for="set-praise">완료 칭찬 말</label>
+          <input type="text" id="set-praise" maxlength="80" autocomplete="off">
+        </div>
+        <div class="row" id="voice-row" hidden>
+          <div>
+            <div class="row-label">음성 명령</div>
+            <span class="row-help">'다음', '이전', '다시', '처음'. 저장하지 않아요.</span>
+          </div>
+          <button type="button" class="switch" id="set-voice" role="switch" aria-checked="false" aria-label="음성 명령"><i></i></button>
+        </div>
+      </div>
+      <p class="voice-status" id="voice-status" hidden></p>
+
+      <h2 class="section-title">활동</h2>
+      <div class="activity-admin" id="activity-admin"></div>
+      <div class="toolbar">
+        <button type="button" class="btn btn-primary" id="btn-new-activity">새 활동 만들기</button>
+        <button type="button" class="btn btn-secondary" id="btn-export">내보내기</button>
+        <button type="button" class="btn btn-secondary" id="btn-import">가져오기</button>
+        <input type="file" id="file-import" accept="application/json,.json" hidden>
+      </div>
+      <p class="note">아이폰에서는 시작 버튼을 누른 뒤에 소리가 나요. 한국어 목소리는 휴대전화에 깔려 있는 음성에 따라 달라요.</p>
+      <footer class="legal">이 앱은 카메라와 인터넷을 쓰지 않아요. 학생 이름이나 사진은 저장하지 않고, 활동 문구와 설정만 이 기기에 남겨 둬요. 지금은 휴대전화에서 쓰고, 나중에 글래스가 오면 소리와 탭 입력만 옮겨 붙이면 되도록 만들어 두었어요.</footer>
+    </section>
+
+    <section id="screen-edit" class="screen" aria-labelledby="edit-title">
+      <div class="top-row bar">
+        <button type="button" class="btn btn-secondary" id="btn-edit-back" style="min-height:48px;padding:8px 14px">뒤로</button>
+        <h1 id="edit-title" class="panel-title" style="margin:0">활동 고치기</h1>
+        <span></span>
+      </div>
+      <div class="field">
+        <label for="edit-name">활동 이름</label>
+        <input type="text" id="edit-name" maxlength="40" autocomplete="off">
+      </div>
+      <div id="edit-steps"></div>
+      <div class="toolbar">
+        <button type="button" class="btn btn-secondary" id="btn-add-step">단계 추가</button>
+        <button type="button" class="btn btn-primary" id="btn-save-edit">저장</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+
+    var STORAGE_KEY = "voice-steps-v1";
+    var DOUBLE_MS = 350;
+    var LONG_MS = 750;
+    var EMOJIS = ["💧","🚰","🧼","👐","✋","💦","🧺","🧻","👕","👟","🍚","🥄","🪥","🛁","🚪","📚","✏️","🪑","🧹","🧸","🍎","🚌","🏫","👋","⭐","✅","☀️","⏰","🎒","🧢"];
+
+    var DEFAULT_ACTIVITY = {
+      id: "wash-hands",
+      name: "손 씻기",
+      steps: [
+        { emoji: "💧", text: "물 틀기", speech: "물을 틀어요.", timerSeconds: 0 },
+        { emoji: "🧼", text: "비누 묻히기", speech: "비누를 묻혀요.", timerSeconds: 0 },
+        { emoji: "👐", text: "손 비비기", speech: "손을 비비요. 삼십 초 동안요.", timerSeconds: 30 },
+        { emoji: "💦", text: "물로 헹구기", speech: "물로 헹궈요.", timerSeconds: 0 },
+        { emoji: "🧺", text: "수건으로 닦기", speech: "수건으로 닦아요.", timerSeconds: 0 }
+      ]
+    };
+
+    var DEFAULT_SETTINGS = {
+      showSymbols: true,
+      highContrast: false,
+      largeText: false,
+      speechRate: "slow",
+      praiseMessage: "잘했어요!",
+      spokenCount: true,
+      utteranceVolume: 1,
+      voiceCommands: false
+    };
+
+    var state = {
+      screen: "home",
+      activities: [],
+      settings: {},
+      currentActivityId: "wash-hands",
+      stepIndex: 0,
+      lastAction: "",
+      editingId: null,
+      timer: { remaining: 0, total: 0, running: false, done: false },
+      holdFromTeacher: false
+    };
+
+    var timerInterval = null;
+    var timerStarted = false;
+    var doneReturnTimer = null;
+    var cueTimer = null;
+    var koreanVoice = null;
+    var wakeLock = null;
+
+    function requestWake() {
+      try {
+        if (!navigator.wakeLock || state.screen !== "play") return;
+        navigator.wakeLock.request("screen").then(function (l) {
+          wakeLock = l;
+          l.addEventListener("release", function () { if (wakeLock === l) wakeLock = null; });
+        }).catch(function () {});
+      } catch (e) {}
+    }
+    function releaseWake() {
+      try { if (wakeLock) { wakeLock.release(); wakeLock = null; } } catch (e) {}
+    }
+
+    var tap = {
+      count: 0,
+      longTimer: null,
+      singleTimer: null,
+      longFired: false,
+      downAt: 0,
+      startX: 0,
+      startY: 0,
+      pointerId: null
+    };
+
+    var teacherHold = { timer: null, fired: false, el: null };
+    var recognition = null;
+    var recognizing = false;
+    var SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
+
+    function loadStore() {
+      var data = null;
+      try { data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch (e) { data = null; }
+      if (!data || !Array.isArray(data.activities) || !data.activities.length) {
+        state.activities = [deepClone(DEFAULT_ACTIVITY)];
+        state.settings = Object.assign({}, DEFAULT_SETTINGS);
+        state.currentActivityId = DEFAULT_ACTIVITY.id;
+        saveStore();
+        return;
+      }
+      state.activities = data.activities.map(normalizeActivity);
+      state.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings || {});
+      state.currentActivityId = data.currentActivityId && getActivity(data.currentActivityId)
+        ? data.currentActivityId
+        : state.activities[0].id;
+    }
+
+    function normalizeActivity(a) {
+      var steps = Array.isArray(a.steps) ? a.steps : [];
+      return {
+        id: String(a.id || uid()),
+        name: String(a.name || "새 활동"),
+        steps: steps.map(function (s) {
+          return {
+            emoji: String(s.emoji || "⭐"),
+            text: String(s.text || ""),
+            speech: String(s.speech || s.text || ""),
+            timerSeconds: Math.max(0, parseInt(s.timerSeconds, 10) || 0)
+          };
+        })
+      };
+    }
+
+    function saveStore() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          activities: state.activities,
+          settings: state.settings,
+          currentActivityId: state.currentActivityId
+        }));
+      } catch (e) {}
+    }
+
+    function uid() {
+      return "a-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
+    }
+
+    function getActivity(id) {
+      for (var i = 0; i < state.activities.length; i++) {
+        if (state.activities[i].id === id) return state.activities[i];
+      }
+      return state.activities[0];
+    }
+
+    function currentActivity() { return getActivity(state.currentActivityId); }
+
+    function currentStep() {
+      var a = currentActivity();
+      return a && a.steps[state.stepIndex] ? a.steps[state.stepIndex] : null;
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, function (c) {
+        return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c];
+      });
+    }
+
+    function applyChrome() {
+      var s = state.settings;
+      document.documentElement.setAttribute("data-contrast", s.highContrast ? "high" : "normal");
+      document.documentElement.setAttribute("data-large", s.largeText ? "true" : "false");
+      document.documentElement.setAttribute("data-symbols", s.showSymbols ? "on" : "off");
+      var theme = s.highContrast ? "#000000" : "#F4EFE4";
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", theme);
+    }
+
+    function showScreen(name) {
+      state.screen = name;
+      ["home", "play", "done", "teacher", "edit"].forEach(function (id) {
+        var el = document.getElementById("screen-" + id);
+        var on = id === name;
+        el.classList.toggle("active", on);
+        el.toggleAttribute("hidden", !on);
+        if ("inert" in el) el.inert = !on;
+      });
+      clearTapTimers();
+      tap.count = 0;
+      if (name === "play") requestWake(); else releaseWake();
+    }
+
+    function announce(text) {
+      var live = document.getElementById("live");
+      live.textContent = "";
+      setTimeout(function () { live.textContent = text; }, 20);
+    }
+
+    function pickKoreanVoice() {
+      if (!window.speechSynthesis) return;
+      var voices = speechSynthesis.getVoices() || [];
+      koreanVoice = voices.find(function (v) { return /^ko(-|_)?/i.test(v.lang); }) ||
+        voices.find(function (v) { return /korean|한국/i.test(v.name); }) || null;
+    }
+
+    var speakToken = 0;
+    var isSpeaking = false;
+    var ignoreVoiceUntil = 0;
+
+    function speak(text, opts) {
+      opts = opts || {};
+      var myToken = ++speakToken;
+      isSpeaking = false;
+      function finish() {
+        if (myToken !== speakToken) return;
+        isSpeaking = false;
+        ignoreVoiceUntil = Date.now() + 700;
+        if (opts.onend) opts.onend();
+      }
+      if (!text || !window.speechSynthesis) {
+        if (opts.onend) setTimeout(finish, 400);
+        return;
+      }
+      if (opts.interrupt !== false) {
+        try { speechSynthesis.cancel(); } catch (e) {}
+      }
+      var u = new SpeechSynthesisUtterance(String(text));
+      u.lang = "ko-KR";
+      u.rate = state.settings.speechRate === "normal" ? 0.95 : 0.72;
+      u.volume = Math.max(0, Math.min(1, Number(state.settings.utteranceVolume) || 1));
+      u.pitch = 1;
+      if (koreanVoice) u.voice = koreanVoice;
+      u.onend = finish;
+      u.onerror = finish;
+      isSpeaking = true;
+      try { speechSynthesis.speak(u); } catch (e) {
+        setTimeout(finish, 400);
+      }
+    }
+
+    function stopSpeech() {
+      speakToken++;
+      isSpeaking = false;
+      try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
+    }
+
+    function playPraiseChime() {
+      try {
+        var Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        var ctx = new Ctx();
+        if (ctx.state === "suspended") ctx.resume();
+        var now = ctx.currentTime;
+        var notes = [523.25, 659.25, 783.99];
+        var vol = 0.12 * (Number(state.settings.utteranceVolume) || 1);
+        notes.forEach(function (freq, i) {
+          var osc = ctx.createOscillator();
+          var gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.value = freq;
+          var t = now + i * 0.13;
+          gain.gain.setValueAtTime(0.0001, t);
+          gain.gain.exponentialRampToValueAtTime(Math.max(0.001, vol), t + 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.58);
+        });
+        setTimeout(function () { ctx.close(); }, 1800);
+      } catch (e) {}
+    }
+
+    function showCue(text) {
+      var cue = document.getElementById("cue");
+      cue.textContent = text;
+      cue.classList.add("show");
+      clearTimeout(cueTimer);
+      cueTimer = setTimeout(function () { cue.classList.remove("show"); }, 900);
+    }
+
+    function renderHome() {
+      var a = currentActivity();
+      document.getElementById("home-emoji").textContent = (a.steps[0] && a.steps[0].emoji) || "⭐";
+      document.getElementById("home-name").textContent = a.name;
+      document.getElementById("home-meta").textContent = a.steps.length + "단계";
+      var box = document.getElementById("home-choices");
+      if (state.activities.length < 2) {
+        box.hidden = true;
+        box.innerHTML = "";
+        return;
+      }
+      box.hidden = false;
+      box.innerHTML = state.activities.map(function (act) {
+        var pressed = act.id === state.currentActivityId ? "true" : "false";
+        var em = (act.steps[0] && act.steps[0].emoji) || "⭐";
+        return '<button type="button" class="activity-choice" data-select-activity="' + escapeHtml(act.id) + '" aria-pressed="' + pressed + '">' +
+          '<span class="choice-emoji symbol" aria-hidden="true">' + escapeHtml(em) + "</span>" +
+          "<span>" + escapeHtml(act.name) + " · " + act.steps.length + "단계</span></button>";
+      }).join("");
+    }
+
+    function renderProgress() {
+      var steps = currentActivity().steps;
+      var html = "";
+      for (var i = 0; i < steps.length; i++) {
+        var cls = "dot";
+        if (i < state.stepIndex) cls += " done";
+        if (i === state.stepIndex) cls += " current";
+        html += '<span class="' + cls + '"></span>';
+      }
+      document.getElementById("progress").innerHTML = html;
+    }
+
+    function renderPlay() {
+      var a = currentActivity();
+      var step = currentStep();
+      if (!step) return;
+      var n = state.stepIndex + 1;
+      var total = a.steps.length;
+      document.getElementById("step-count").textContent = n + " / " + total;
+      document.getElementById("step-emoji").textContent = step.emoji || "⭐";
+      document.getElementById("step-text").textContent = step.text || step.speech || "";
+      document.getElementById("tap-zone").setAttribute(
+        "aria-label",
+        n + "단계, " + (step.text || "") + ". 한 번 탭하면 다음, 두 번 탭하면 다시 듣기, 길게 누르면 처음, 오른쪽으로 밀면 이전."
+      );
+      renderProgress();
+      renderTimer();
+    }
+
+    function renderTimer() {
+      var wrap = document.getElementById("timer-wrap");
+      var step = currentStep();
+      var has = step && step.timerSeconds > 0 && state.screen === "play";
+      wrap.hidden = !has;
+      if (!has) return;
+      wrap.classList.toggle("is-done", state.timer.done);
+      var shown = state.timer.done ? 0 : (state.timer.total ? state.timer.remaining : step.timerSeconds);
+      document.getElementById("timer-num").textContent = String(shown);
+      document.getElementById("timer-label").textContent = state.timer.done ? "다 됐어요. 한 번 탭하면 다음이에요." : "초";
+      var total = state.timer.total || step.timerSeconds;
+      var elapsed = state.timer.done ? total : (total - shown);
+      var pct = total ? Math.min(100, Math.max(0, (elapsed / total) * 100)) : 0;
+      document.getElementById("timer-fill").style.width = pct + "%";
+    }
+
+    function setSwitch(id, on) {
+      var el = document.getElementById(id);
+      el.setAttribute("aria-checked", on ? "true" : "false");
+    }
+
+    function renderTeacher() {
+      var s = state.settings;
+      setSwitch("set-symbols", s.showSymbols);
+      setSwitch("set-contrast", s.highContrast);
+      setSwitch("set-large", s.largeText);
+      setSwitch("set-count", s.spokenCount);
+      setSwitch("set-voice", s.voiceCommands);
+      document.getElementById("rate-slow").setAttribute("aria-pressed", s.speechRate !== "normal" ? "true" : "false");
+      document.getElementById("rate-normal").setAttribute("aria-pressed", s.speechRate === "normal" ? "true" : "false");
+      document.getElementById("set-volume").value = String(s.utteranceVolume);
+      document.getElementById("set-praise").value = s.praiseMessage;
+      var voiceRow = document.getElementById("voice-row");
+      var voiceStatus = document.getElementById("voice-status");
+      if (SpeechRecognitionAPI) {
+        voiceRow.hidden = false;
+        voiceStatus.hidden = false;
+        voiceStatus.classList.toggle("on", !!(s.voiceCommands && recognizing));
+        voiceStatus.textContent = s.voiceCommands ? (recognizing ? "음성 명령을 듣고 있어요." : "음성 명령을 켜 두었어요.") : "";
+      } else {
+        voiceRow.hidden = true;
+        voiceStatus.hidden = true;
+      }
+      document.getElementById("activity-admin").innerHTML = state.activities.map(function (act) {
+        var em = (act.steps[0] && act.steps[0].emoji) || "⭐";
+        var canDelete = state.activities.length > 1;
+        return '<div class="admin-item">' +
+          '<span class="symbol" aria-hidden="true" style="font-size:1.6rem;width:2rem;text-align:center">' + escapeHtml(em) + "</span>" +
+          '<button type="button" class="info" data-select-activity="' + escapeHtml(act.id) + '">' + escapeHtml(act.name) +
+          "<small>" + act.steps.length + "단계" + (act.id === state.currentActivityId ? " · 지금 쓰는 활동" : "") + "</small></button>" +
+          '<button type="button" class="icon-btn" data-edit-activity="' + escapeHtml(act.id) + '">고치기</button>' +
+          (canDelete ? '<button type="button" class="icon-btn" data-delete-activity="' + escapeHtml(act.id) + '">삭제</button>' : "") +
+          "</div>";
+      }).join("");
+    }
+
+    function renderEdit() {
+      var a = state.activities.find(function (x) { return x.id === state.editingId; });
+      if (!a) return;
+      document.getElementById("edit-name").value = a.name;
+      document.getElementById("edit-steps").innerHTML = a.steps.map(function (step, i) {
+        var grid = EMOJIS.map(function (em) {
+          return '<button type="button" data-pick-emoji="' + i + '" data-emoji="' + escapeHtml(em) + '" aria-pressed="' + (em === step.emoji ? "true" : "false") + '" aria-label="상징 ' + escapeHtml(em) + '">' + escapeHtml(em) + "</button>";
+        }).join("");
+        return '<div class="step-editor">' +
+          '<div class="step-editor-head"><span>' + (i + 1) + "단계</span><div>" +
+          '<button type="button" class="icon-btn" data-move-step="' + i + '" data-dir="-1" aria-label="위로" ' + (i === 0 ? "disabled" : "") + ">위</button> " +
+          '<button type="button" class="icon-btn" data-move-step="' + i + '" data-dir="1" aria-label="아래로" ' + (i === a.steps.length - 1 ? "disabled" : "") + ">아래</button> " +
+          '<button type="button" class="icon-btn" data-remove-step="' + i + '" ' + (a.steps.length <= 1 ? "disabled" : "") + ">삭제</button>" +
+          "</div></div>" +
+          '<div class="field"><label>상징</label><div class="emoji-grid">' + grid + "</div></div>" +
+          '<div class="field"><label for="step-text-' + i + '">화면 문구</label>' +
+          '<input type="text" id="step-text-' + i + '" data-step-field="text" data-step-index="' + i + '" maxlength="40" value="' + escapeHtml(step.text) + '"></div>' +
+          '<div class="field"><label for="step-speech-' + i + '">음성 문구</label>' +
+          '<input type="text" id="step-speech-' + i + '" data-step-field="speech" data-step-index="' + i + '" maxlength="80" value="' + escapeHtml(step.speech) + '"></div>' +
+          '<div class="field"><label for="step-timer-' + i + '">타이머(초). 없으면 0</label>' +
+          '<input type="text" id="step-timer-' + i + '" inputmode="numeric" data-step-field="timerSeconds" data-step-index="' + i + '" maxlength="3" value="' + escapeHtml(String(step.timerSeconds || 0)) + '"></div>' +
+          "</div>";
+      }).join("");
+    }
+
+    function renderAll() {
+      applyChrome();
+      if (state.screen === "home") renderHome();
+      if (state.screen === "play") renderPlay();
+      if (state.screen === "done") {
+        document.getElementById("done-title").textContent = state.settings.praiseMessage || "잘했어요!";
+      }
+      if (state.screen === "teacher") renderTeacher();
+      if (state.screen === "edit") renderEdit();
+    }
+
+    function goHome() {
+      clearTimer();
+      clearTimeout(doneReturnTimer);
+      stopSpeech();
+      state.stepIndex = 0;
+      showScreen("home");
+      renderAll();
+      syncVoice();
+    }
+
+    function startActivity() {
+      var a = currentActivity();
+      if (!a || !a.steps.length) return;
+      clearTimeout(doneReturnTimer);
+      state.stepIndex = 0;
+      state.lastAction = "start";
+      showScreen("play");
+      enterStep(true);
+      syncVoice();
+    }
+
+    function speechText(step) {
+      return (step.speech && step.speech.trim()) || (step.text && step.text.trim()) || "";
+    }
+
+    function enterStep(speakNow) {
+      clearTimer();
+      renderPlay();
+      var step = currentStep();
+      if (!step) return;
+      var msg = (state.stepIndex + 1) + "단계. " + (step.text || "");
+      announce(msg);
+      if (speakNow) {
+        speak(speechText(step), { onend: function () { maybeStartTimer(); } });
+      }
+      if (step.timerSeconds > 0) {
+        state.timer = { remaining: step.timerSeconds, total: step.timerSeconds, running: false, done: false };
+        timerStarted = false;
+        renderTimer();
+        if (!speakNow) maybeStartTimer();
+      }
+    }
+
+    function koreanCount(n) {
+      var map = { 10: "십", 20: "이십", 30: "삼십", 40: "사십", 50: "오십", 60: "육십" };
+      if (map[n]) return map[n] + " 초요.";
+      return n + "초요.";
+    }
+
+    function maybeStartTimer() {
+      var step = currentStep();
+      if (!step || !step.timerSeconds || timerStarted || state.screen !== "play") return;
+      timerStarted = true;
+      var seconds = step.timerSeconds;
+      var start = Date.now();
+      state.timer = { remaining: seconds, total: seconds, running: true, done: false };
+      renderTimer();
+      var lastSpokenMark = 0;
+      timerInterval = setInterval(function () {
+        if (state.screen !== "play") { clearTimer(); return; }
+        var elapsed = Math.floor((Date.now() - start) / 1000);
+        var remaining = Math.max(0, seconds - elapsed);
+        state.timer.remaining = remaining;
+        if (remaining <= 0) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+          state.timer.remaining = 0;
+          state.timer.running = false;
+          state.timer.done = true;
+          renderTimer();
+          speak("다 됐어요.", { interrupt: true });
+          announce("다 됐어요. 한 번 탭하면 다음이에요.");
+          return;
+        }
+        renderTimer();
+        if (state.settings.spokenCount) {
+          var mark = Math.floor(elapsed / 10) * 10;
+          if (mark >= 10 && mark < seconds && mark !== lastSpokenMark) {
+            lastSpokenMark = mark;
+            speak(koreanCount(mark), { interrupt: true });
+          }
+        }
+      }, 200);
+    }
+
+    function clearTimer() {
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+      timerStarted = false;
+      state.timer = { remaining: 0, total: 0, running: false, done: false };
+    }
+
+    function goNext() {
+      if (state.screen !== "play") return;
+      var a = currentActivity();
+      state.lastAction = "next";
+      showCue("다음");
+      if (state.stepIndex >= a.steps.length - 1) {
+        completeActivity();
+        return;
+      }
+      state.stepIndex += 1;
+      enterStep(true);
+    }
+
+    function replay() {
+      if (state.screen !== "play") return;
+      state.lastAction = "replay";
+      showCue("다시 듣기");
+      var step = currentStep();
+      if (!step) return;
+      announce((step.text || "") + ", 다시 들어요.");
+      speak(speechText(step), { interrupt: true });
+    }
+
+    function goPrev() {
+      if (state.screen !== "play") return;
+      if (state.stepIndex <= 0) { replay(); return; }
+      state.lastAction = "prev";
+      showCue("이전");
+      state.stepIndex -= 1;
+      enterStep(true);
+    }
+
+    function goFirst() {
+      if (state.screen !== "play") return;
+      state.lastAction = "first";
+      showCue("처음으로");
+      state.stepIndex = 0;
+      enterStep(true);
+    }
+
+    function completeActivity() {
+      clearTimer();
+      state.lastAction = "complete";
+      showScreen("done");
+      var praise = state.settings.praiseMessage || "잘했어요!";
+      document.getElementById("done-title").textContent = praise;
+      announce(praise);
+      playPraiseChime();
+      speak(praise, { interrupt: true, onend: function () {
+        doneReturnTimer = setTimeout(goHome, 1400);
+      } });
+      renderAll();
+      syncVoice();
+    }
+
+    function openTeacher() {
+      clearTimer();
+      clearTimeout(doneReturnTimer);
+      stopSpeech();
+      showScreen("teacher");
+      renderAll();
+      syncVoice();
+      var btn = document.getElementById("btn-student");
+      if (btn) btn.focus();
+    }
+
+    function openEdit(id) {
+      state.editingId = id;
+      showScreen("edit");
+      renderAll();
+      document.getElementById("edit-name").focus();
+    }
+
+    function persistEditFields() {
+      var a = state.activities.find(function (x) { return x.id === state.editingId; });
+      if (!a) return;
+      a.name = document.getElementById("edit-name").value.trim() || "새 활동";
+      document.querySelectorAll("[data-step-field]").forEach(function (input) {
+        var i = parseInt(input.getAttribute("data-step-index"), 10);
+        var field = input.getAttribute("data-step-field");
+        if (!a.steps[i]) return;
+        if (field === "timerSeconds") {
+          var n = parseInt(String(input.value).replace(/[^\d]/g, ""), 10);
+          a.steps[i].timerSeconds = isNaN(n) ? 0 : Math.min(300, Math.max(0, n));
+        } else {
+          a.steps[i][field] = input.value;
+        }
+      });
+    }
+
+    function finalizeEdit() {
+      persistEditFields();
+      var a = state.activities.find(function (x) { return x.id === state.editingId; });
+      if (!a) return;
+      var kept = a.steps.filter(function (st) {
+        return (st.text || "").trim() || (st.speech || "").trim();
+      });
+      if (!kept.length) kept = [{ emoji: "⭐", text: "첫 단계", speech: "첫 단계예요.", timerSeconds: 0 }];
+      kept.forEach(function (st) {
+        st.text = (st.text || "").trim() || st.speech.trim();
+        st.speech = (st.speech || "").trim() || st.text;
+      });
+      a.steps = kept;
+      saveStore();
+    }
+
+    /* Tap gestures on the play surface (temple-tap stand-in) */
+    function clearTapTimers() {
+      if (tap.longTimer) { clearTimeout(tap.longTimer); tap.longTimer = null; }
+      if (tap.singleTimer) { clearTimeout(tap.singleTimer); tap.singleTimer = null; }
+    }
+
+    function setHoldBar(on) {
+      var bar = document.getElementById("hold-bar");
+      bar.classList.toggle("is-on", !!on);
+    }
+
+    function onTapDown(e) {
+      if (state.screen !== "play") return;
+      if (e.target.closest("[data-open-teacher]")) return;
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      if (e.cancelable) e.preventDefault();
+      tap.downAt = Date.now();
+      tap.startX = e.clientX;
+      tap.startY = e.clientY;
+      tap.longFired = false;
+      tap.pointerId = e.pointerId;
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+      setHoldBar(true);
+      if (tap.longTimer) clearTimeout(tap.longTimer);
+      tap.longTimer = setTimeout(function () {
+        tap.longFired = true;
+        tap.count = 0;
+        clearTapTimers();
+        setHoldBar(false);
+        goFirst();
+      }, LONG_MS);
+    }
+
+    function onTapUp(e) {
+      if (state.screen !== "play") { setHoldBar(false); return; }
+      if (e.target.closest("[data-open-teacher]")) return;
+      setHoldBar(false);
+      if (tap.longTimer) { clearTimeout(tap.longTimer); tap.longTimer = null; }
+      if (tap.longFired) return;
+      if (Date.now() - tap.downAt >= LONG_MS) return;
+      var dx = e.clientX - tap.startX;
+      var dy = e.clientY - tap.startY;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > 2 * Math.abs(dy)) {
+        clearTapTimers();
+        tap.count = 0;
+        if (dx > 0) goPrev(); else goNext();
+        return;
+      }
+      tap.count += 1;
+      if (tap.count === 1) {
+        tap.singleTimer = setTimeout(function () {
+          tap.count = 0;
+          tap.singleTimer = null;
+          goNext();
+        }, DOUBLE_MS);
+      } else {
+        clearTimeout(tap.singleTimer);
+        tap.singleTimer = null;
+        tap.count = 0;
+        replay();
+      }
+    }
+
+    function onTapCancel() {
+      setHoldBar(false);
+      if (tap.longTimer) { clearTimeout(tap.longTimer); tap.longTimer = null; }
+      tap.longFired = false;
+    }
+
+    function onTeacherPointerDown(e) {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      teacherHold.fired = false;
+      teacherHold.el = e.currentTarget;
+      teacherHold.el.classList.add("is-holding");
+      teacherHold.el.setAttribute("aria-pressed", "true");
+      teacherHold.timer = setTimeout(function () {
+        teacherHold.fired = true;
+        teacherHold.el.classList.remove("is-holding");
+        teacherHold.el.setAttribute("aria-pressed", "false");
+        openTeacher();
+      }, 650);
+    }
+
+    function onTeacherPointerEnd() {
+      if (teacherHold.timer) { clearTimeout(teacherHold.timer); teacherHold.timer = null; }
+      if (teacherHold.el) {
+        teacherHold.el.classList.remove("is-holding");
+        teacherHold.el.setAttribute("aria-pressed", "false");
+      }
+    }
+
+    /* Voice commands */
+    function handleVoiceText(raw) {
+      if (state.screen !== "play" || !raw) return;
+      if (isSpeaking || Date.now() < ignoreVoiceUntil) return;
+      var t = String(raw).replace(/\s+/g, "").replace(/[.]/g, "");
+      if (/이전|뒤로|전으로/.test(t)) goPrev();
+      else if (/다음|다음으로|넘겨|넘어가/.test(t)) goNext();
+      else if (/다시듣|다시|한번더|되풀이/.test(t)) replay();
+      else if (/처음|처음부터|처음으로|시작으로/.test(t)) goFirst();
+    }
+
+    function stopRecognition() {
+      recognizing = false;
+      if (recognition) {
+        try { recognition.onend = null; recognition.stop(); } catch (e) {}
+      }
+    }
+
+    function startRecognition() {
+      if (!SpeechRecognitionAPI || !state.settings.voiceCommands || state.screen !== "play") {
+        stopRecognition();
+        return;
+      }
+      if (recognizing) return;
+      try {
+        recognition = new SpeechRecognitionAPI();
+        recognition.lang = "ko-KR";
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+        recognition.onresult = function (ev) {
+          var last = ev.results[ev.results.length - 1];
+          if (last && last[0]) handleVoiceText(last[0].transcript);
+        };
+        recognition.onend = function () {
+          recognizing = false;
+          if (state.settings.voiceCommands && state.screen === "play") {
+            setTimeout(startRecognition, 250);
+          }
+        };
+        recognition.onerror = function (ev) {
+          recognizing = false;
+          if (ev && (ev.error === "not-allowed" || ev.error === "service-not-allowed")) {
+            state.settings.voiceCommands = false;
+            saveStore();
+            if (state.screen === "teacher") renderTeacher();
+          }
+        };
+        recognition.start();
+        recognizing = true;
+      } catch (e) {
+        recognizing = false;
+      }
+    }
+
+    function syncVoice() {
+      if (state.settings.voiceCommands && state.screen === "play") startRecognition();
+      else stopRecognition();
+    }
+
+    function onKey(e) {
+      if (state.screen !== "play") return;
+      if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+      if (e.key === "Enter" || e.key === " " || e.key === "ArrowRight") {
+        e.preventDefault();
+        goNext();
+      } else if (e.key === "r" || e.key === "R") {
+        e.preventDefault();
+        replay();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        goPrev();
+      } else if (e.key === "Home" || e.key === "Escape") {
+        e.preventDefault();
+        goFirst();
+      }
+    }
+
+    document.getElementById("btn-start").addEventListener("click", startActivity);
+    document.getElementById("btn-home").addEventListener("click", goHome);
+    document.getElementById("btn-student").addEventListener("click", goHome);
+    document.getElementById("btn-new-activity").addEventListener("click", function () {
+      var neu = { id: uid(), name: "새 활동", steps: [{ emoji: "⭐", text: "첫 단계", speech: "첫 단계예요.", timerSeconds: 0 }] };
+      state.activities.push(neu);
+      saveStore();
+      openEdit(neu.id);
+    });
+    document.getElementById("btn-export").addEventListener("click", function () {
+      var blob = new Blob([JSON.stringify({ app: "voice-steps", version: 1, activities: state.activities }, null, 2)], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement("a");
+      link.href = url;
+      link.download = "단계안내-활동.json";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    });
+    document.getElementById("btn-import").addEventListener("click", function () {
+      document.getElementById("file-import").click();
+    });
+    document.getElementById("file-import").addEventListener("change", function (e) {
+      var file = e.target.files && e.target.files[0];
+      e.target.value = "";
+      if (!file) return;
+      if (file.size > 1024 * 1024) { window.alert("파일이 너무 커요."); return; }
+      var reader = new FileReader();
+      reader.onload = function () {
+        try {
+          var data = JSON.parse(String(reader.result));
+          var list = Array.isArray(data) ? data : data.activities;
+          if (!Array.isArray(list) || !list.length) throw new Error("empty");
+          var added = list.slice(0, 30).map(function (a) {
+            var n = normalizeActivity(a);
+            n.id = uid();
+            n.steps = n.steps.filter(function (st) { return st.text || st.speech; });
+            return n;
+          }).filter(function (a) { return a.steps.length; });
+          if (!added.length) throw new Error("no steps");
+          state.activities = state.activities.concat(added);
+          saveStore();
+          renderTeacher();
+          window.alert(added.length + "개 활동을 가져왔어요.");
+        } catch (err) {
+          window.alert("가져올 수 없는 파일이에요.");
+        }
+      };
+      reader.readAsText(file);
+    });
+    document.getElementById("btn-edit-back").addEventListener("click", function () {
+      finalizeEdit();
+      showScreen("teacher");
+      renderAll();
+    });
+    document.getElementById("btn-save-edit").addEventListener("click", function () {
+      finalizeEdit();
+      showScreen("teacher");
+      renderAll();
+    });
+    document.getElementById("btn-add-step").addEventListener("click", function () {
+      persistEditFields();
+      var a = state.activities.find(function (x) { return x.id === state.editingId; });
+      if (!a) return;
+      a.steps.push({ emoji: "⭐", text: "", speech: "", timerSeconds: 0 });
+      saveStore();
+      renderEdit();
+    });
+    document.getElementById("edit-name").addEventListener("input", function () {
+      persistEditFields();
+      saveStore();
+    });
+    document.getElementById("edit-steps").addEventListener("input", function () {
+      persistEditFields();
+      saveStore();
+    });
+    document.getElementById("edit-steps").addEventListener("click", function (e) {
+      var a = state.activities.find(function (x) { return x.id === state.editingId; });
+      if (!a) return;
+      var pick = e.target.closest("[data-pick-emoji]");
+      var mv = e.target.closest("[data-move-step]");
+      var rm = e.target.closest("[data-remove-step]");
+      persistEditFields();
+      if (pick) {
+        var i = parseInt(pick.getAttribute("data-pick-emoji"), 10);
+        a.steps[i].emoji = pick.getAttribute("data-emoji");
+      } else if (mv) {
+        var from = parseInt(mv.getAttribute("data-move-step"), 10);
+        var to = from + parseInt(mv.getAttribute("data-dir"), 10);
+        if (to < 0 || to >= a.steps.length) return;
+        var tmp = a.steps[from];
+        a.steps[from] = a.steps[to];
+        a.steps[to] = tmp;
+      } else if (rm) {
+        if (a.steps.length <= 1) return;
+        a.steps.splice(parseInt(rm.getAttribute("data-remove-step"), 10), 1);
+      } else return;
+      saveStore();
+      renderEdit();
+    });
+
+    document.getElementById("activity-admin").addEventListener("click", function (e) {
+      var edit = e.target.closest("[data-edit-activity]");
+      var del = e.target.closest("[data-delete-activity]");
+      var sel = e.target.closest("[data-select-activity]");
+      if (edit) openEdit(edit.getAttribute("data-edit-activity"));
+      else if (del) {
+        var id = del.getAttribute("data-delete-activity");
+        if (state.activities.length <= 1) return;
+        if (!window.confirm("이 활동을 삭제할까요?")) return;
+        state.activities = state.activities.filter(function (a) { return a.id !== id; });
+        if (state.currentActivityId === id) state.currentActivityId = state.activities[0].id;
+        saveStore();
+        renderTeacher();
+      } else if (sel) {
+        state.currentActivityId = sel.getAttribute("data-select-activity");
+        saveStore();
+        renderTeacher();
+      }
+    });
+
+    document.getElementById("home-choices").addEventListener("click", function (e) {
+      var sel = e.target.closest("[data-select-activity]");
+      if (!sel) return;
+      state.currentActivityId = sel.getAttribute("data-select-activity");
+      saveStore();
+      renderHome();
+    });
+
+    function bindSwitch(id, key) {
+      document.getElementById(id).addEventListener("click", function () {
+        state.settings[key] = !state.settings[key];
+        saveStore();
+        renderAll();
+        syncVoice();
+      });
+    }
+    bindSwitch("set-symbols", "showSymbols");
+    bindSwitch("set-contrast", "highContrast");
+    bindSwitch("set-large", "largeText");
+    bindSwitch("set-count", "spokenCount");
+    bindSwitch("set-voice", "voiceCommands");
+
+    document.getElementById("rate-slow").addEventListener("click", function () {
+      state.settings.speechRate = "slow";
+      saveStore();
+      renderTeacher();
+    });
+    document.getElementById("rate-normal").addEventListener("click", function () {
+      state.settings.speechRate = "normal";
+      saveStore();
+      renderTeacher();
+    });
+    document.getElementById("set-volume").addEventListener("input", function (e) {
+      state.settings.utteranceVolume = Number(e.target.value);
+      saveStore();
+    });
+    document.getElementById("set-praise").addEventListener("input", function (e) {
+      state.settings.praiseMessage = e.target.value;
+      saveStore();
+    });
+
+    var tapZone = document.getElementById("tap-zone");
+    tapZone.addEventListener("pointerdown", onTapDown);
+    tapZone.addEventListener("pointerup", onTapUp);
+    tapZone.addEventListener("pointercancel", onTapCancel);
+    tapZone.addEventListener("lostpointercapture", onTapCancel);
+    tapZone.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+    document.addEventListener("keydown", onKey);
+
+    document.querySelectorAll("[data-open-teacher]").forEach(function (btn) {
+      btn.addEventListener("pointerdown", onTeacherPointerDown);
+      btn.addEventListener("pointerup", onTeacherPointerEnd);
+      btn.addEventListener("pointercancel", onTeacherPointerEnd);
+      btn.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); });
+      btn.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+    });
+
+    if (window.speechSynthesis) {
+      pickKoreanVoice();
+      speechSynthesis.addEventListener("voiceschanged", pickKoreanVoice);
+    }
+
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden && state.screen === "play" && !wakeLock) requestWake();
+    });
+
+    if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    }
+
+    loadStore();
+    showScreen("home");
+    renderAll();
+
+    window.__voiceSteps = {
+      getState: function () {
+        return {
+          screen: state.screen,
+          activityId: state.currentActivityId,
+          activityName: currentActivity().name,
+          stepIndex: state.stepIndex,
+          stepText: currentStep() ? currentStep().text : "",
+          stepCount: currentActivity().steps.length,
+          lastAction: state.lastAction,
+          timer: { remaining: state.timer.remaining, done: state.timer.done, running: state.timer.running }
+        };
+      },
+      start: startActivity,
+      next: goNext,
+      prev: goPrev,
+      replay: replay,
+      first: goFirst,
+      openTeacher: openTeacher,
+      goHome: goHome
+    };
+  })();
+  </script>
+</body>
+</html>
