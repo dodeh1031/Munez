@@ -910,6 +910,17 @@
         ignoreVoiceUntil = Date.now() + 700;
         if (opts.onend) opts.onend();
       }
+      if (window.NativeTTS) {
+        if (opts.interrupt !== false) { try { window.NativeTTS.stop(); } catch (e) {} }
+        if (!text) { if (opts.onend) setTimeout(finish, 400); return; }
+        window.__ttsDone = function (id) { if (id === myToken) finish(); };
+        isSpeaking = true;
+        try {
+          window.NativeTTS.speak(String(text), state.settings.speechRate === "normal" ? 0.95 : 0.72,
+            Math.max(0, Math.min(1, Number(state.settings.utteranceVolume) || 1)), myToken);
+        } catch (e) { setTimeout(finish, 400); }
+        return;
+      }
       if (!text || !window.speechSynthesis) {
         if (opts.onend) setTimeout(finish, 400);
         return;
@@ -934,6 +945,7 @@
     function stopSpeech() {
       speakToken++;
       isSpeaking = false;
+      try { if (window.NativeTTS) window.NativeTTS.stop(); } catch (e) {}
       try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
     }
 
