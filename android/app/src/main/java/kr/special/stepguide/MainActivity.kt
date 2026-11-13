@@ -57,7 +57,9 @@ class MainActivity : AppCompatActivity() {
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                // 학생이 실수로 앱을 나가지 않도록 뒤로가기는 무시한다.
+                // 뒤로가기를 누르면 앱을 종료한다. (활동·설정은 입력할 때마다 저장되어 있다.)
+                tts?.stop()
+                finish()
             }
         })
     }
