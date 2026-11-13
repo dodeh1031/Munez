@@ -555,6 +555,29 @@
     .voice-status { font-size: 0.86rem; font-weight: 700; color: var(--muted); min-height: 1.2em; }
     .voice-status.on { color: var(--ok); }
 
+    .dialog {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.5);
+    }
+    .dialog[hidden] { display: none; }
+    .dialog-box {
+      width: 100%;
+      max-width: 360px;
+      background: var(--surface);
+      color: var(--text);
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .dialog-box p { margin: 0 0 16px; font-weight: 800; font-size: 1.1rem; line-height: 1.4; }
+    .dialog-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
     footer.legal {
       margin-top: 22px;
       font-size: 0.8rem;
@@ -695,6 +718,16 @@
       <footer class="legal">이 앱은 카메라와 인터넷을 쓰지 않아요. 학생 이름이나 사진은 저장하지 않고, 활동 문구와 설정만 이 기기에 남겨 둬요. 지금은 휴대전화에서 쓰고, 나중에 글래스가 오면 소리와 탭 입력만 옮겨 붙이면 되도록 만들어 두었어요.</footer>
     </section>
 
+    <div id="dialog" class="dialog" hidden role="alertdialog" aria-modal="true" aria-labelledby="dialog-msg">
+      <div class="dialog-box">
+        <p id="dialog-msg"></p>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-secondary" id="dialog-cancel">취소</button>
+          <button type="button" class="btn btn-primary" id="dialog-ok">확인</button>
+        </div>
+      </div>
+    </div>
+
     <section id="screen-edit" class="screen" aria-labelledby="edit-title">
       <div class="top-row bar">
         <button type="button" class="btn btn-secondary" id="btn-edit-back" style="min-height:48px;padding:8px 14px">뒤로</button>
@@ -794,6 +827,25 @@
     var recognition = null;
     var recognizing = false;
     var SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    /* 앱(WebView)에서는 브라우저 기본 확인 창이 뜨지 않으므로 자체 대화상자를 쓴다. */
+    function showDialog(msg, withCancel, onOk) {
+      var box = document.getElementById("dialog");
+      var ok = document.getElementById("dialog-ok");
+      var cancel = document.getElementById("dialog-cancel");
+      document.getElementById("dialog-msg").textContent = msg;
+      cancel.hidden = !withCancel;
+      box.hidden = false;
+      function close(accepted) {
+        box.hidden = true;
+        ok.onclick = null;
+        cancel.onclick = null;
+        if (accepted && onOk) onOk();
+      }
+      ok.onclick = function () { close(true); };
+      cancel.onclick = function () { close(false); };
+      ok.focus();
+    }
 
     function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
 
@@ -1546,7 +1598,7 @@
       var file = e.target.files && e.target.files[0];
       e.target.value = "";
       if (!file) return;
-      if (file.size > 1024 * 1024) { window.alert("파일이 너무 커요."); return; }
+      if (file.size > 1024 * 1024) { showDialog("파일이 너무 커요."); return; }
       var reader = new FileReader();
       reader.onload = function () {
         try {
@@ -1563,9 +1615,9 @@
           state.activities = state.activities.concat(added);
           saveStore();
           renderTeacher();
-          window.alert(added.length + "개 활동을 가져왔어요.");
+          showDialog(added.length + "개 활동을 가져왔어요.");
         } catch (err) {
-          window.alert("가져올 수 없는 파일이에요.");
+          showDialog("가져올 수 없는 파일이에요.");
         }
       };
       reader.readAsText(file);
@@ -1629,11 +1681,14 @@
       else if (del) {
         var id = del.getAttribute("data-delete-activity");
         if (state.activities.length <= 1) return;
-        if (!window.confirm("이 활동을 삭제할까요?")) return;
-        state.activities = state.activities.filter(function (a) { return a.id !== id; });
-        if (state.currentActivityId === id) state.currentActivityId = state.activities[0].id;
-        saveStore();
-        renderTeacher();
+        var target = getActivity(id);
+        showDialog("'" + (target ? target.name : "") + "' 활동을 삭제할까요?", true, function () {
+          if (state.activities.length <= 1) return;
+          state.activities = state.activities.filter(function (a) { return a.id !== id; });
+          if (state.currentActivityId === id) state.currentActivityId = state.activities[0].id;
+          saveStore();
+          renderTeacher();
+        });
       } else if (sel) {
         state.currentActivityId = sel.getAttribute("data-select-activity");
         saveStore();
