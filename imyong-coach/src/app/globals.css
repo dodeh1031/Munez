@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  /* 외부 폰트 다운로드 없이 OS 기본 한글 글꼴 사용 (오프라인 로컬 실행 대비) */
+  --font-sans: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Malgun Gothic",
+    "Noto Sans KR", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900;
+  /* 한글 단어 단위 줄바꿈 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
