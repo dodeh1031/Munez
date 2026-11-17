@@ -6,6 +6,7 @@ import { ArrowLeft, Info } from "lucide-react";
 import { Tabs, type TabItem } from "@/components/ui/Tabs";
 import { AlternativeList } from "@/components/report/AlternativeList";
 import { ConditionChecks } from "@/components/report/ConditionChecks";
+import { PipelineStatus } from "@/components/report/PipelineStatus";
 import { PromptSummary } from "@/components/report/PromptSummary";
 import { QuestionEvalList } from "@/components/report/QuestionEvalList";
 import { RubricTable } from "@/components/report/RubricTable";
@@ -26,6 +27,7 @@ export function ReportDashboard() {
   const promptText = useSessionStore((s) => s.promptText);
   const promptImage = useSessionStore((s) => s.promptImage);
   const realReport = useSessionStore((s) => s.report);
+  const processed = useSessionStore((s) => s.processed);
 
   // 실제 분석 결과가 없으면, 입력 화면에서 고른 모드의 샘플 리포트를 보여 줍니다.
   const isSample = realReport === null;
@@ -61,12 +63,15 @@ export function ReportDashboard() {
         {/* 2단 레이아웃: 왼쪽 영상(고정) · 오른쪽 리포트 */}
         <div className="grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
           <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-            <VideoPanel video={video} />
+            <VideoPanel video={video} processed={processed} />
             <PromptSummary mode={sessionMode} text={promptText} image={promptImage} />
           </aside>
 
-          {/* 모드가 바뀌면 탭 상태를 초기화 */}
-          <ReportTabs key={report.mode} report={report} />
+          <div className="min-w-0 space-y-4">
+            <PipelineStatus />
+            {/* 모드가 바뀌면 탭 상태를 초기화 */}
+            <ReportTabs key={report.mode} report={report} />
+          </div>
         </div>
       </div>
     </VideoSeekProvider>

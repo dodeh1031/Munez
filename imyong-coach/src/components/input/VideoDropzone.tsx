@@ -6,7 +6,7 @@ import { CircleAlert, FileVideo, LoaderCircle, Trash2, Upload } from "lucide-rea
 import { MAX_VIDEO_SECONDS } from "@/lib/constants";
 import { formatBytes, formatSeconds } from "@/lib/format";
 import { useSessionStore } from "@/lib/store";
-import { isAcceptedVideo, readVideoDuration } from "@/lib/video";
+import { isAcceptedVideo, probeVideo } from "@/lib/video";
 
 export function VideoDropzone() {
   const video = useSessionStore((s) => s.video);
@@ -26,16 +26,18 @@ export function VideoDropzone() {
       return;
     }
     setChecking(true);
-    const durationSec = await readVideoDuration(file);
+    const probe = await probeVideo(file);
     setChecking(false);
-    if (durationSec !== null && durationSec > MAX_VIDEO_SECONDS + 1) {
-      setError(`영상이 ${formatSeconds(durationSec)}로 최대 15분을 넘어요. 잘라서 다시 올려 주세요.`);
+    if (probe.durationSec !== null && probe.durationSec > MAX_VIDEO_SECONDS + 1) {
+      setError(`영상이 ${formatSeconds(probe.durationSec)}로 최대 15분을 넘어요. 잘라서 다시 올려 주세요.`);
       return;
     }
-    if (durationSec === null) {
-      setWarning("이 브라우저에서 영상 길이를 읽지 못했어요(코덱 문제일 수 있음). 분석 전 압축 단계에서 다시 확인합니다.");
+    if (!probe.decodable) {
+      setWarning(
+        "이 브라우저가 재생하지 못하는 코덱이에요(예: 아이폰 HEVC). 호환 모드로 압축하므로 시간이 더 걸리고(15분 영상 약 3~5분), 리포트에서는 분석용 영상으로 재생됩니다.",
+      );
     }
-    setVideo({ file, durationSec, source: "upload" });
+    setVideo({ file, source: "upload", ...probe });
   }
 
   const fileInput = (

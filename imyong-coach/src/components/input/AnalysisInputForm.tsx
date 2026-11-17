@@ -9,6 +9,7 @@ import { ModeToggle } from "@/components/input/ModeToggle";
 import { PromptInput } from "@/components/input/PromptInput";
 import { VideoInput } from "@/components/input/VideoInput";
 import { MODE_META } from "@/lib/constants";
+import { startAnalysis } from "@/lib/pipeline";
 import { useSessionStore } from "@/lib/store";
 
 export function AnalysisInputForm() {
@@ -16,9 +17,10 @@ export function AnalysisInputForm() {
   const mode = useSessionStore((s) => s.mode);
   const hasPrompt = useSessionStore((s) => s.promptText.trim().length > 0 || s.promptImage !== null);
   const hasVideo = useSessionStore((s) => s.video !== null);
+  const running = useSessionStore((s) => s.pipeline.status === "running");
 
   function handleStart() {
-    // TODO(2~3단계): ffmpeg.wasm 전처리 → Gemini 업로드·분석 파이프라인 시작
+    startAnalysis(); // 이미 실행 중이면 무시됨
     router.push("/report");
   }
 
@@ -71,8 +73,8 @@ export function AnalysisInputForm() {
               disabled={!hasVideo}
               className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
-              <Sparkles className="size-4" aria-hidden />
-              AI 분석 시작
+              <Sparkles className={clsx("size-4", running && "animate-pulse")} aria-hidden />
+              {running ? "진행 상황 보기" : "AI 분석 시작"}
             </button>
           </div>
         </div>

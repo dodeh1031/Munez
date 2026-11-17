@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { PreprocessResult } from "@/lib/ffmpeg/preprocess";
 import type { AnalysisReport, EvalMode } from "@/lib/schema/report";
 
 /**
@@ -9,20 +10,15 @@ import type { AnalysisReport, EvalMode } from "@/lib/schema/report";
 
 export type VideoSource = "upload" | "webcam";
 
-/** 2~3단계 파이프라인 진행 상태 */
-export type AnalysisStatus =
-  | "idle"
-  | "preprocessing" // ffmpeg.wasm 압축/오디오 분리
-  | "uploading" // Gemini File API 업로드
-  | "analyzing" // 멀티모달 분석
-  | "done"
-  | "error";
-
 export interface SelectedVideo {
   file: File;
   url: string;
   durationSec: number | null;
   source: VideoSource;
+  /** 이 브라우저가 원본을 재생(디코딩)할 수 있는지 */
+  decodable: boolean;
+  width: number;
+  height: number;
 }
 
 export interface SelectedImage {
@@ -30,22 +26,54 @@ export interface SelectedImage {
   url: string;
 }
 
+/** 전처리된 분석용 영상 */
+export interface ProcessedMedia extends PreprocessResult {
+  url: string;
+  /** 어떤 원본에서 만들었는지 (같은 영상 재분석 시 재사용) */
+  sourceFile: File;
+  originalSize: number;
+}
+
+export type PipelineStep = "preprocess" | "upload" | "analyze";
+
+export interface PipelineState {
+  status: "idle" | "running" | "complete" | "error" | "cancelled";
+  step: PipelineStep | null;
+  /** 현재 단계 진행률 0~1 */
+  progress: number;
+  detail: string | null;
+  error: string | null;
+  startedAt: number | null;
+  finishedAt: number | null;
+}
+
+const IDLE_PIPELINE: PipelineState = {
+  status: "idle",
+  step: null,
+  progress: 0,
+  detail: null,
+  error: null,
+  startedAt: null,
+  finishedAt: null,
+};
+
 interface SessionState {
   mode: EvalMode;
   promptText: string;
   promptImage: SelectedImage | null;
   video: SelectedVideo | null;
 
-  status: AnalysisStatus;
-  progress: number; // 0~1
+  pipeline: PipelineState;
+  processed: ProcessedMedia | null;
   report: AnalysisReport | null;
-  error: string | null;
 
   setMode: (mode: EvalMode) => void;
   setPromptText: (text: string) => void;
   setPromptImage: (file: File | null) => void;
   setVideo: (video: Omit<SelectedVideo, "url"> | null) => void;
-  resetAnalysis: () => void;
+  setPipeline: (patch: Partial<PipelineState>) => void;
+  setProcessed: (media: Omit<ProcessedMedia, "url"> | null) => void;
+  setReport: (report: AnalysisReport | null) => void;
 }
 
 export const useSessionStore = create<SessionState>()((set, get) => ({
@@ -54,10 +82,9 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
   promptImage: null,
   video: null,
 
-  status: "idle",
-  progress: 0,
+  pipeline: IDLE_PIPELINE,
+  processed: null,
   report: null,
-  error: null,
 
   setMode: (mode) => set({ mode }),
   setPromptText: (promptText) => set({ promptText }),
@@ -69,17 +96,25 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
   },
 
   setVideo: (video) => {
-    const prev = get().video;
+    const { video: prev, processed } = get();
     if (prev) URL.revokeObjectURL(prev.url);
+    if (processed) URL.revokeObjectURL(processed.url);
+    // 영상이 바뀌면 이전 전처리·분석 결과는 무효 (실행 중인 작업은 pipeline.ts가 감지해 취소)
     set({
       video: video ? { ...video, url: URL.createObjectURL(video.file) } : null,
-      // 영상이 바뀌면 이전 분석 결과는 무효
-      status: "idle",
-      progress: 0,
+      pipeline: IDLE_PIPELINE,
+      processed: null,
       report: null,
-      error: null,
     });
   },
 
-  resetAnalysis: () => set({ status: "idle", progress: 0, report: null, error: null }),
+  setPipeline: (patch) => set((s) => ({ pipeline: { ...s.pipeline, ...patch } })),
+
+  setProcessed: (media) => {
+    const prev = get().processed;
+    if (prev) URL.revokeObjectURL(prev.url);
+    set({ processed: media ? { ...media, url: URL.createObjectURL(media.file) } : null });
+  },
+
+  setReport: (report) => set({ report }),
 }));

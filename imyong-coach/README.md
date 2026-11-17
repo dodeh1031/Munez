@@ -7,7 +7,7 @@
 
 ```bash
 cd imyong-coach
-npm install                 # postinstall이 ffmpeg.wasm 코어를 public/ffmpeg 로 복사
+npm install                 # postinstall이 ffmpeg.wasm 파일을 public/ffmpeg 로 복사
 cp .env.example .env.local  # GEMINI_API_KEY 입력
 npm run dev                 # http://localhost:3000
 ```
@@ -27,7 +27,7 @@ Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Tailwind CSS v4 
 ```
 imyong-coach/
 ├─ .env.example                  # GEMINI_API_KEY, GEMINI_MODEL
-├─ scripts/copy-ffmpeg-core.mjs  # postinstall: ffmpeg.wasm 코어 → public/ffmpeg (오프라인 동작)
+├─ scripts/copy-ffmpeg-core.mjs  # postinstall: ffmpeg.wasm(코어·워커·패키지) → public/ffmpeg (오프라인 동작)
 └─ src/
    ├─ app/
    │  ├─ page.tsx                # ① 입력 화면 (모드·문제·영상)
@@ -36,8 +36,8 @@ imyong-coach/
    ├─ components/
    │  ├─ layout/                 # 헤더·내비게이션
    │  ├─ ui/                     # Card 등 공용 UI
-   │  ├─ input/                  # ModeToggle, PromptInput, VideoDropzone, WebcamRecorder
-   │  └─ report/                 # VideoPanel, ScoreOverview, SegmentFeedbackList, AlternativeList,
+   │  ├─ input/                  # ModeToggle, PromptInput, VideoDropzone, WebcamRecorder(MediaRecorder)
+   │  └─ report/                 # PipelineStatus(진행 상황), VideoPanel, 채점표·피드백 카드,
    │                             # VideoSeekContext(타임스탬프 → 영상 점프)
    └─ lib/
       ├─ rubrics/                # 채점표 (영역 → 세부 기준). 문구 수정은 여기서만
@@ -45,11 +45,25 @@ imyong-coach/
       │  └─ interview.ts         #   심층면접: 공고문 5영역 + 태도·전달력, 문항 유형, 자기점검표
       ├─ schema/report.ts        # 리포트 스키마 = UI 타입 + Gemini 응답 스키마(채점표에서 자동 생성) + 검증
       ├─ store.ts                # 브라우저 메모리 세션 (새로고침 시 초기화)
+      ├─ pipeline.ts             # 분석 파이프라인: 전처리 → (3단계) 업로드 → 분석, 취소 지원
       ├─ constants.ts            # 모드·루브릭·라벨 메타데이터
       ├─ mock/sampleReport.ts    # 레이아웃 확인용 샘플 리포트
-      ├─ ffmpeg/                 # [2단계] 480p·저fps 압축 / 오디오 분리
+      ├─ ffmpeg/                 # 브라우저 전처리: client(로더) · capture(프레임 캡처) · preprocess
       └─ gemini/                 # [3단계] 서버 전용 Gemini 클라이언트·프롬프트
 ```
+
+## 영상 전처리 (브라우저 안에서만, 원본은 외부로 나가지 않음)
+
+분석용 영상: **H.264 mp4 · 짧은 변 480px · 1fps · AAC 모노 16kHz** — 타임라인은 원본과 동일하게 유지됩니다.
+
+| 경우 | 방식 | 15분 영상 소요(테스트 환경 기준) |
+| --- | --- | --- |
+| 브라우저가 재생 가능한 영상 (mp4·mov(H.264)·webm) | 브라우저로 1초마다 프레임 캡처 + ffmpeg.wasm 오디오 분리 동시 진행 → 인코딩 | 약 50초 |
+| 브라우저가 재생 못하는 코덱 (예: Chrome의 아이폰 HEVC) | ffmpeg.wasm 호환 모드 변환 (참조되지 않는 프레임 디코딩 생략) | 약 3~4분 |
+
+- Gemini는 영상을 초당 1프레임으로 샘플링하므로 1fps로 줄여도 분석 정보 손실이 없습니다.
+- 비용은 파일 크기가 아니라 영상 길이·샘플링으로 결정됩니다. 압축은 업로드 시간을 줄이기 위한 것이고, 토큰 절감은 3단계에서 `mediaResolution` 설정으로 합니다.
+- 웹캠 녹화는 `localhost`(또는 https)에서만 동작합니다. 카메라는 탭을 바꾸거나 다른 페이지로 이동하면 자동으로 꺼집니다.
 
 ## 채점표
 
@@ -67,5 +81,5 @@ imyong-coach/
 
 - [x] **1단계** — 프로젝트 세팅, 입력 화면, 2단 리포트 레이아웃(샘플 데이터), 타임스탬프 클릭 → 영상 이동
 - [x] **1.5단계** — 교재 채점 기준표 기반 모드별 채점표·리포트 탭(종합/문항별/채점표/구간 피드백/대체 표현/자기점검표)
-- [ ] **2단계** — 웹캠 녹화(MediaRecorder), ffmpeg.wasm 전처리(480p·1~2fps·오디오 분리)
+- [x] **2단계** — 웹캠 녹화(MediaRecorder), ffmpeg.wasm 전처리(480p·1fps·오디오 분리), 진행률·취소
 - [ ] **3단계** — Gemini File API 업로드 + Structured Output 분석, 진행 상태 표시, 실제 리포트 연결
