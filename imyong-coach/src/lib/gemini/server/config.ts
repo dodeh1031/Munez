@@ -1,5 +1,5 @@
 import "server-only";
-import { GoogleGenAI, MediaResolution } from "@google/genai";
+import { GoogleGenAI, MediaResolution, ThinkingLevel } from "@google/genai";
 
 const RESOLUTIONS: Record<string, MediaResolution> = {
   low: MediaResolution.MEDIA_RESOLUTION_LOW,
@@ -7,12 +7,23 @@ const RESOLUTIONS: Record<string, MediaResolution> = {
   high: MediaResolution.MEDIA_RESOLUTION_HIGH,
 };
 
+const THINKING_LEVELS: Record<string, ThinkingLevel> = {
+  low: ThinkingLevel.LOW,
+  medium: ThinkingLevel.MEDIUM,
+  high: ThinkingLevel.HIGH,
+};
+
+/** 기본 모델 — gemini-2.5-pro는 서비스 종료 중이고 새 사용자에게는 열리지 않음 */
+export const DEFAULT_MODEL = "gemini-4-argon";
+
 /** .env.local 설정값 (서버에서만 읽음 — API 키는 브라우저로 절대 전달되지 않음) */
 export function getGeminiConfig() {
   const resolutionKey = (process.env.GEMINI_MEDIA_RESOLUTION ?? "low").trim().toLowerCase();
   return {
     apiKey: process.env.GEMINI_API_KEY?.trim() || null,
-    model: process.env.GEMINI_MODEL?.trim() || "gemini-2.5-pro",
+    model: process.env.GEMINI_MODEL?.trim() || DEFAULT_MODEL,
+    /** 추론 깊이 (Gemini 3·4 계열): low | medium | high. 비우면 모델 기본값(medium) */
+    thinkingLevel: THINKING_LEVELS[(process.env.GEMINI_THINKING_LEVEL ?? "").trim().toLowerCase()] ?? null,
     /** 영상 프레임당 토큰: low ≈ 64, medium ≈ 256. 15분 영상 기준 low가 토큰을 약 1/3로 줄임 */
     mediaResolution: RESOLUTIONS[resolutionKey] ?? MediaResolution.MEDIA_RESOLUTION_LOW,
     mediaResolutionLabel: RESOLUTIONS[resolutionKey] ? resolutionKey : "low",

@@ -77,7 +77,8 @@ imyong-coach/
 | 변수 | 기본값 | 설명 |
 | --- | --- | --- |
 | `GEMINI_API_KEY` | (필수) | 서버에서만 사용, 브라우저로 전달되지 않음 |
-| `GEMINI_MODEL` | `gemini-2.5-pro` | "모델을 사용할 수 없습니다" 오류 시 최신 Pro 모델 이름으로 변경 |
+| `GEMINI_MODEL` | `gemini-4-argon` | 최신 Pro 모델(유료 전용). `gemini-2.5-pro`는 서비스 종료 중이라 새 키에서는 막힐 수 있음 |
+| `GEMINI_THINKING_LEVEL` | (비움 = medium) | `low` / `medium` / `high` — 높을수록 깊이 따지지만 느리고 출력 토큰 증가 |
 | `GEMINI_MEDIA_RESOLUTION` | `low` | 프레임당 토큰 low≈64 / medium≈256. 15분 영상은 low가 토큰을 약 1/3로 줄임 |
 | `GEMINI_MOCK` | (비움) | `1`이면 API 호출 없이 샘플 리포트로 화면 흐름만 테스트 |
 | `GEMINI_BASE_URL` | (비움) | 프록시·테스트 서버용. 보통 비워 둠 |

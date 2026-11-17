@@ -1,6 +1,7 @@
 import "server-only";
 import { ApiError } from "@google/genai";
 import type { GeminiErrorCode } from "@/lib/gemini/events";
+import { DEFAULT_MODEL } from "@/lib/gemini/server/config";
 
 export class GeminiError extends Error {
   constructor(
@@ -30,10 +31,17 @@ export function toGeminiError(err: unknown, model: string, context: "upload" | "
       "Gemini 사용 한도를 초과했습니다. 잠시 후 다시 시도하거나, 무료 등급이라면 Google AI Studio에서 결제를 연결하세요.",
     );
   }
-  if ((status === 404 || status === 400) && (text.includes("models/") || text.includes("is not found for api version") || text.includes("not supported for generatecontent"))) {
+  if (
+    (status === 404 || status === 400) &&
+    (text.includes("models/") ||
+      text.includes("is not found for api version") ||
+      text.includes("not supported for generatecontent") ||
+      text.includes("no longer available"))
+  ) {
+    const hint = model === DEFAULT_MODEL ? "최신 Pro 모델 이름" : `'${DEFAULT_MODEL}'`;
     return new GeminiError(
       "MODEL_NOT_FOUND",
-      `모델 '${model}'을(를) 사용할 수 없습니다. 서비스가 종료되었거나 이름이 바뀌었을 수 있으니 .env.local의 GEMINI_MODEL을 최신 Pro 모델로 바꿔 주세요.`,
+      `모델 '${model}'을(를) 사용할 수 없습니다(서비스 종료·새 사용자 제한 등). .env.local의 GEMINI_MODEL을 ${hint}(으)로 바꾸고 개발 서버를 다시 시작하세요.`,
     );
   }
   if (context === "upload" && status !== undefined && status < 500 && status !== 403) {
@@ -55,6 +63,13 @@ export function toGeminiError(err: unknown, model: string, context: "upload" | "
     return new GeminiError("SERVER_BUSY", "Gemini 서버에 연결하지 못했습니다. 인터넷 연결을 확인하세요.");
   }
   return new GeminiError("UNKNOWN", raw.slice(0, 400) || "알 수 없는 오류가 발생했습니다.");
+}
+
+/** 모델이 영상 해상도(mediaResolution) 설정을 받아들이지 않은 경우인지 */
+export function isMediaResolutionRejection(err: unknown): boolean {
+  const status = err instanceof ApiError ? err.status : undefined;
+  const text = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  return status === 400 && (text.includes("media_resolution") || text.includes("mediaresolution") || text.includes("media resolution"));
 }
 
 /** 스키마가 너무 복잡하거나 지원하지 않는 기능이 있어 거부된 경우인지 */

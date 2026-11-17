@@ -9,7 +9,7 @@ import {
 } from "@google/genai";
 import { analyzePayloadSchema, type AnalyzeEvent, type AnalyzePayload, type TokenUsage } from "@/lib/gemini/events";
 import { createGeminiClient, getGeminiConfig } from "@/lib/gemini/server/config";
-import { GeminiError, isSchemaRejection, toGeminiError } from "@/lib/gemini/server/errors";
+import { GeminiError, isMediaResolutionRejection, isSchemaRejection, toGeminiError } from "@/lib/gemini/server/errors";
 import { ndjsonResponse } from "@/lib/gemini/server/ndjson";
 import { parseModelJson, toReport } from "@/lib/gemini/server/normalize";
 import { buildSystemInstruction, buildUserPrompt } from "@/lib/gemini/server/prompt";
@@ -79,31 +79,41 @@ export async function POST(request: Request) {
         mediaResolution: config.mediaResolution,
         maxOutputTokens: 65536,
         abortSignal: signal,
-        // 2.5 계열은 낮은 temperature로 채점 일관성↑ (3 계열은 기본값 권장이라 지정하지 않음)
+        // 2.5 계열은 낮은 temperature로 채점 일관성↑ (3·4 계열은 temperature를 무시하므로 지정하지 않음)
         ...(config.model.startsWith("gemini-2") ? { temperature: 0.4 } : {}),
+        // 3·4 계열: 추론 깊이 (설정한 경우만)
+        ...(config.thinkingLevel && !config.model.startsWith("gemini-2")
+          ? { thinkingConfig: { thinkingLevel: config.thinkingLevel } }
+          : {}),
       };
       const baseRequest = { model: config.model, contents: [createUserContent(parts)] };
 
       send({ type: "status", message: "AI가 영상을 보고 채점하는 중… (영상 길이에 따라 1~3분)" });
       let schemaFallback = false;
+      /** 모델이 영상 해상도 설정을 거부하면 그 설정만 빼고 한 번 더 요청 */
+      const openStream = async (cfg: GenerateContentConfig) => {
+        try {
+          return await ai.models.generateContentStream({ ...baseRequest, config: cfg });
+        } catch (err) {
+          if (!cfg.mediaResolution || !isMediaResolutionRejection(err)) throw err;
+          console.warn("[api/gemini/analyze] mediaResolution rejected, retrying without it:", err);
+          const { mediaResolution: _drop, ...rest } = cfg;
+          void _drop;
+          return await ai.models.generateContentStream({ ...baseRequest, config: rest });
+        }
+      };
       let stream;
       try {
-        stream = await ai.models.generateContentStream({
-          ...baseRequest,
-          config: { ...baseConfig, responseJsonSchema: jsonSchema },
-        });
+        stream = await openStream({ ...baseConfig, responseJsonSchema: jsonSchema });
       } catch (err) {
         if (!isSchemaRejection(err)) throw err;
         // 스키마가 너무 복잡하다고 거부되면, 스키마를 지시문에 넣고 JSON 모드로 다시 요청 (응답은 동일하게 검증)
         console.warn("[api/gemini/analyze] responseJsonSchema rejected, falling back:", err);
         schemaFallback = true;
         send({ type: "status", message: "응답 형식을 지시문으로 전달해 다시 요청하는 중…" });
-        stream = await ai.models.generateContentStream({
-          ...baseRequest,
-          config: {
-            ...baseConfig,
-            systemInstruction: `${systemInstruction}\n\n[응답 JSON 스키마 — 이 구조를 정확히 따르세요]\n${JSON.stringify(jsonSchema)}`,
-          },
+        stream = await openStream({
+          ...baseConfig,
+          systemInstruction: `${systemInstruction}\n\n[응답 JSON 스키마 — 이 구조를 정확히 따르세요]\n${JSON.stringify(jsonSchema)}`,
         });
       }
 
