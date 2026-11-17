@@ -8,12 +8,14 @@ import {
   type HistoryRecord,
 } from "@/lib/history/types";
 import type { AnalysisReport, EvalMode } from "@/lib/schema/report";
+import type { TimeLimits } from "@/lib/timeLimits";
 
 export function newRecord(input: {
   mode: EvalMode;
   title: string;
   promptText: string;
   durationSec: number | null;
+  timeLimits?: TimeLimits | null;
   report: AnalysisReport;
   meta: AnalysisMeta | null;
 }): HistoryRecord {

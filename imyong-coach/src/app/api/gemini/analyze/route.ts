@@ -67,6 +67,7 @@ export async function POST(request: Request) {
           promptText: payload.promptText,
           hasImage: image !== null,
           durationSec: payload.durationSec,
+          timeLimits: payload.timeLimits,
         }),
       });
 

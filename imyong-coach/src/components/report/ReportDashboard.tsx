@@ -13,6 +13,7 @@ import { RubricTable } from "@/components/report/RubricTable";
 import { ScoreOverview } from "@/components/report/ScoreOverview";
 import { SegmentFeedbackList } from "@/components/report/SegmentFeedbackList";
 import { SelfChecklist } from "@/components/report/SelfChecklist";
+import { TimeUsageCard } from "@/components/report/TimeUsageCard";
 import { VideoPanel, type PlaybackMedia } from "@/components/report/VideoPanel";
 import { VideoSeekProvider } from "@/components/report/VideoSeekContext";
 import { MODE_META } from "@/lib/constants";
@@ -23,6 +24,12 @@ import { SAMPLE_REPORTS } from "@/lib/mock/sampleReport";
 import { getRubric } from "@/lib/rubrics";
 import type { AnalysisReport } from "@/lib/schema/report";
 import { useSessionStore, type ViewingRecord } from "@/lib/store";
+import { limitsForMode, type TimeLimits } from "@/lib/timeLimits";
+
+interface Timing {
+  durationSec: number | null;
+  timeLimits: TimeLimits | null | undefined;
+}
 
 export function ReportDashboard() {
   const viewing = useSessionStore((s) => s.viewing);
@@ -37,6 +44,8 @@ function SessionDashboard() {
   const promptImage = useSessionStore((s) => s.promptImage);
   const realReport = useSessionStore((s) => s.report);
   const processed = useSessionStore((s) => s.processed);
+  const analyzedInput = useSessionStore((s) => s.analyzedInput);
+  const currentLimits = useSessionStore((s) => s.timeLimits);
   const historyCount = useHistoryStore((s) => s.records.length);
 
   useEffect(() => {
@@ -46,6 +55,11 @@ function SessionDashboard() {
   // 실제 분석 결과가 없으면, 입력 화면에서 고른 모드의 샘플 리포트를 보여 줍니다.
   const isSample = realReport === null;
   const report = realReport ?? SAMPLE_REPORTS[sessionMode];
+  // 실제 결과는 분석에 쓴 시간 조건으로, 샘플은 지금 입력한 조건으로 비교
+  const timing: Timing = {
+    durationSec: video?.durationSec ?? processed?.durationSec ?? null,
+    timeLimits: realReport ? analyzedInput?.timeLimits : limitsForMode(currentLimits, report.mode),
+  };
 
   // 브라우저가 원본을 재생하지 못하면(HEVC 등) 압축된 분석용 영상으로 재생
   const media: PlaybackMedia | null = video
@@ -85,8 +99,9 @@ function SessionDashboard() {
       tabsKey={report.mode}
       media={media}
       banner={banner}
-      prompt={<PromptSummary mode={sessionMode} text={promptText} image={promptImage} />}
+      prompt={<PromptSummary mode={sessionMode} text={promptText} image={promptImage} timeLimits={timing.timeLimits} />}
       status={<PipelineStatus />}
+      timing={timing}
     />
   );
 }
@@ -167,8 +182,9 @@ function SavedRecordDashboard({ viewing }: { viewing: ViewingRecord }) {
       tabsKey={`${record.mode}-${record.id}`}
       media={media}
       banner={banner}
-      prompt={<PromptSummary mode={record.mode} text={record.promptText} image={null} />}
+      prompt={<PromptSummary mode={record.mode} text={record.promptText} image={null} timeLimits={record.timeLimits} />}
       status={null}
+      timing={{ durationSec: record.durationSec, timeLimits: record.timeLimits }}
     />
   );
 }
@@ -180,6 +196,7 @@ function DashboardShell({
   banner,
   prompt,
   status,
+  timing,
 }: {
   report: AnalysisReport;
   tabsKey: string;
@@ -187,6 +204,7 @@ function DashboardShell({
   banner: React.ReactNode;
   prompt: React.ReactNode;
   status: React.ReactNode;
+  timing: Timing;
 }) {
   return (
     <VideoSeekProvider hasVideo={Boolean(media?.url)}>
@@ -216,7 +234,7 @@ function DashboardShell({
           <div className="min-w-0 space-y-4">
             {status}
             {/* 모드나 기록이 바뀌면 탭 상태를 초기화 */}
-            <ReportTabs key={tabsKey} report={report} />
+            <ReportTabs key={tabsKey} report={report} timing={timing} />
           </div>
         </div>
       </div>
@@ -226,7 +244,7 @@ function DashboardShell({
 
 type TabId = "overview" | "questions" | "rubric" | "segments" | "alternatives" | "checklist";
 
-function ReportTabs({ report }: { report: AnalysisReport }) {
+function ReportTabs({ report, timing }: { report: AnalysisReport; timing: Timing }) {
   const [tab, setTab] = useState<TabId>("overview");
   const rubric = getRubric(report.mode);
   const altLabel = MODE_META[report.mode].alternativeLabel;
@@ -256,6 +274,7 @@ function ReportTabs({ report }: { report: AnalysisReport }) {
           <>
             <ScoreOverview report={report} rubric={rubric} />
             {report.mode === "demo" && <ConditionChecks checks={report.conditionChecks} />}
+            <TimeUsageCard report={report} durationSec={timing.durationSec} timeLimits={timing.timeLimits} />
           </>
         )}
         {tab === "questions" && report.mode === "interview" && <QuestionEvalList questions={report.questions} />}

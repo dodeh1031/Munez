@@ -3,6 +3,7 @@ import type { PreprocessResult } from "@/lib/ffmpeg/preprocess";
 import type { AnalysisMeta, GeminiErrorCode, UploadedFileInfo } from "@/lib/gemini/events";
 import type { HistoryRecord } from "@/lib/history/types";
 import type { AnalysisReport, EvalMode } from "@/lib/schema/report";
+import { EMPTY_TIME_LIMITS, type TimeLimits } from "@/lib/timeLimits";
 
 /**
  * 브라우저 메모리 세션 스토어 (DB 없음)
@@ -47,6 +48,8 @@ export interface AnalyzedInput {
   promptText: string;
   image: File | null;
   processedFile: File;
+  /** 이번 분석에 쓴 시간 조건 (모드에 맞는 값만) */
+  timeLimits: TimeLimits;
 }
 
 /** 기록 화면에서 연 저장된 분석 (현재 세션과 별개로 리포트 화면에 표시) */
@@ -95,6 +98,9 @@ interface SessionState {
   promptText: string;
   promptImage: SelectedImage | null;
   video: SelectedVideo | null;
+  timeLimits: TimeLimits;
+  /** 저장된 시간 조건을 이번 세션에 불러왔는지 */
+  timeLimitsLoaded: boolean;
 
   pipeline: PipelineState;
   processed: ProcessedMedia | null;
@@ -108,6 +114,7 @@ interface SessionState {
   setMode: (mode: EvalMode) => void;
   setPromptText: (text: string) => void;
   setPromptImage: (file: File | null) => void;
+  setTimeLimits: (patch: Partial<TimeLimits>, options?: { loaded?: boolean }) => void;
   setVideo: (video: Omit<SelectedVideo, "url"> | null) => void;
   setPipeline: (patch: Partial<PipelineState>) => void;
   setProcessed: (media: Omit<ProcessedMedia, "url"> | null) => void;
@@ -127,6 +134,8 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
   promptText: "",
   promptImage: null,
   video: null,
+  timeLimits: EMPTY_TIME_LIMITS,
+  timeLimitsLoaded: false,
 
   pipeline: IDLE_PIPELINE,
   processed: null,
@@ -139,6 +148,8 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
 
   setMode: (mode) => set({ mode }),
   setPromptText: (promptText) => set({ promptText }),
+  setTimeLimits: (patch, options) =>
+    set((s) => ({ timeLimits: { ...s.timeLimits, ...patch }, timeLimitsLoaded: options?.loaded ?? s.timeLimitsLoaded })),
 
   setPromptImage: (file) => {
     const prev = get().promptImage;

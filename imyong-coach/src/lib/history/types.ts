@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { AnalysisMeta } from "@/lib/gemini/events";
+import { timeLimitsSchema, type TimeLimits } from "@/lib/timeLimits";
 import {
   demoReportSchema,
   evalModeSchema,
@@ -23,6 +24,8 @@ export interface HistoryRecord {
   title: string;
   promptText: string;
   durationSec: number | null;
+  /** 분석에 쓴 시간 조건 (예전 기록에는 없을 수 있음) */
+  timeLimits?: TimeLimits | null;
   report: AnalysisReport;
   meta: AnalysisMeta | null;
   /** 분석용 압축 영상이 이 브라우저에 저장되어 있는지 */
@@ -42,6 +45,7 @@ export const historyRecordSchema = z
     title: z.string().catch("이름 없는 영상"),
     promptText: z.string().catch(""),
     durationSec: z.number().nullable().catch(null),
+    timeLimits: timeLimitsSchema.nullable().optional().catch(null),
     report: reportSchema,
     meta: z.any().nullable().catch(null),
   })

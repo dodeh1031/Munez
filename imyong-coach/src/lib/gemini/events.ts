@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { evalModeSchema, type AnalysisReport } from "@/lib/schema/report";
+import { timeLimitsSchema } from "@/lib/timeLimits";
 
 /**
  * 브라우저 ↔ API 라우트 사이의 스트리밍(NDJSON) 이벤트 타입.
@@ -63,6 +64,7 @@ export const analyzePayloadSchema = z.object({
   mode: evalModeSchema,
   promptText: z.string().max(20000),
   durationSec: z.number().positive().nullable(),
+  timeLimits: timeLimitsSchema.nullable(),
   file: z.object({ uri: z.string().min(1), mimeType: z.string().min(1) }),
 });
 export type AnalyzePayload = z.infer<typeof analyzePayloadSchema>;

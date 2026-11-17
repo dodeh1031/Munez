@@ -4,6 +4,7 @@ import type { AnalysisMeta, GeminiErrorCode } from "@/lib/gemini/events";
 import { newRecord } from "@/lib/history/files";
 import { useHistoryStore } from "@/lib/history/store";
 import type { AnalysisReport } from "@/lib/schema/report";
+import { hasLimits, limitsForMode, sameLimits, type TimeLimits } from "@/lib/timeLimits";
 import {
   useSessionStore,
   type AnalyzedInput,
@@ -40,7 +41,8 @@ export function isSameAsLastAnalysis(): boolean {
       last.processedFile === s.processed.file &&
       last.mode === s.mode &&
       last.promptText === s.promptText &&
-      last.image === (s.promptImage?.file ?? null),
+      last.image === (s.promptImage?.file ?? null) &&
+      sameLimits(last.timeLimits, limitsForMode(s.timeLimits, s.mode)),
   );
 }
 
@@ -75,6 +77,7 @@ async function run(video: SelectedVideo, ac: AbortController) {
   const mode = snapshot.mode;
   const promptText = snapshot.promptText;
   const image = snapshot.promptImage?.file ?? null;
+  const timeLimits = limitsForMode(snapshot.timeLimits, mode);
   // 저장된 기록을 보고 있었다면 닫고 이번 분석 진행 상황을 보여 줌
   snapshot.setViewing(null);
 
@@ -98,15 +101,15 @@ async function run(video: SelectedVideo, ac: AbortController) {
     let uploaded = await ensureUploaded(media, signal, false);
     let result;
     try {
-      result = await analyze(uploaded, { mode, promptText, image, durationSec: video.durationSec ?? media.durationSec }, signal);
+      result = await analyze(uploaded, { mode, promptText, image, timeLimits, durationSec: video.durationSec ?? media.durationSec }, signal);
     } catch (err) {
       if (!(err instanceof GeminiClientError && err.code === "FILE_EXPIRED")) throw err;
       uploaded = await ensureUploaded(media, signal, true);
-      result = await analyze(uploaded, { mode, promptText, image, durationSec: video.durationSec ?? media.durationSec }, signal);
+      result = await analyze(uploaded, { mode, promptText, image, timeLimits, durationSec: video.durationSec ?? media.durationSec }, signal);
     }
     if (signal.aborted) return;
 
-    const input: AnalyzedInput = { mode, promptText, image, processedFile: media.file };
+    const input: AnalyzedInput = { mode, promptText, image, processedFile: media.file, timeLimits };
     useSessionStore.getState().setAnalysis({ ...result, input });
     set({ status: "complete", step: null, progress: 1, detail: null, finishedAt: Date.now() });
     void saveToHistory({
@@ -114,6 +117,7 @@ async function run(video: SelectedVideo, ac: AbortController) {
       title: video.file.name,
       promptText,
       durationSec: video.durationSec ?? media.durationSec,
+      timeLimits,
       report: result.report,
       meta: result.meta,
       video: media.file,
@@ -173,7 +177,13 @@ async function ensureUploaded(media: ProcessedMedia, signal: AbortSignal, force:
 
 async function analyze(
   uploaded: UploadedMedia,
-  input: { mode: AnalyzedInput["mode"]; promptText: string; image: File | null; durationSec: number | null },
+  input: {
+    mode: AnalyzedInput["mode"];
+    promptText: string;
+    image: File | null;
+    timeLimits: TimeLimits;
+    durationSec: number | null;
+  },
   signal: AbortSignal,
 ) {
   set({ step: "analyze", progress: 0.03, detail: "분석 요청을 보내는 중" });
@@ -182,6 +192,7 @@ async function analyze(
       mode: input.mode,
       promptText: input.promptText,
       durationSec: input.durationSec,
+      timeLimits: hasLimits(input.timeLimits) ? input.timeLimits : null,
       file: { uri: uploaded.uri, mimeType: uploaded.mimeType },
     },
     input.image,
@@ -203,6 +214,7 @@ async function saveToHistory(input: {
   title: string;
   promptText: string;
   durationSec: number | null;
+  timeLimits: TimeLimits;
   report: AnalysisReport;
   meta: AnalysisMeta;
   video: File;

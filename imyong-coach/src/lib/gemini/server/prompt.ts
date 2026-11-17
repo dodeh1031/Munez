@@ -9,6 +9,7 @@ import {
   QUESTION_TYPES,
 } from "@/lib/rubrics/interview";
 import type { EvalMode } from "@/lib/schema/report";
+import { judgeUsage, koreanDuration, type TimeLimits } from "@/lib/timeLimits";
 
 /**
  * 채점표(rubrics/*.ts) → Gemini 지시문.
@@ -43,7 +44,8 @@ function demoInstructions(): string {
 - conditionChecks: 문제지(텍스트·이미지)에 제시된 수업 조건을 빠짐없이 하나씩 추출해 충족(met)/부분 충족(partial)/미충족(missed)으로 판정합니다. 조건이 제시되지 않았으면 빈 배열로 둡니다.
 - segments: 도입–전개–정리 흐름에 따라 주요 장면 6~12개를 시간순으로 고릅니다. 잘한 점(strength)과 보완점(improve, critical)을 균형 있게 담고, area에는 관련 채점 영역 id를 넣습니다.
 - alternatives: 어느 수업에나 붙일 수 있는 만능틀·상투적 발문(예: "알겠죠?", "잘했어요", "재미있었나요?", "함께 해 봅시다", "다 같이 해 볼까요?")을 실제 발화에서 3~6개 찾습니다. 대체 발문은 수업 조건, 학습목표, 특수교육대상학생의 특성(의사소통 수준, AAC, 촉진 단계 등)을 반영해 교실에서 그대로 말할 수 있는 문장으로 씁니다.
-- 특수교과의 수업 영역은 특수교육 현장 관점(개별화, 긍정적 행동지원, 기능적 교육과정, 안전, 지원인력 협력)에서 엄격하게 봅니다.`;
+- 특수교과의 수업 영역은 특수교육 현장 관점(개별화, 긍정적 행동지원, 기능적 교육과정, 안전, 지원인력 협력)에서 엄격하게 봅니다.
+- 시간 관리(posture.pacing): [시간 조건]이 있으면 그것을 기준으로 판단합니다. 제한 시간을 넘기면 critical 구간 피드백을 남기고 pacing을 2점 이하로 줍니다. 제한 시간의 80%도 쓰지 않고 끝나면 내용이 부족했을 가능성을 지적합니다. 도입·전개·정리의 시작 시각이 segments에 드러나게 하고, 도입이나 정리가 지나치게 길거나 짧으면(일반적으로 각각 전체의 15% 안팎이 적당) 지적합니다.`;
 }
 
 function interviewInstructions(): string {
@@ -65,6 +67,7 @@ ${types}
 - checklist: 아래 자기점검표 항목마다 pass(지킴)/fail(보완 필요)/na(영상에서 확인 불가)로 판정합니다. 입실·퇴실 장면이 영상에 없으면 해당 항목은 na로 두고 note는 빈 문자열입니다.
 ${checklist}
 - segments: 주요 장면 6~12개를 시간순으로 고르고, area에는 관련 채점 영역 id를 넣습니다.
+- 시간 관리(delivery.timing): [시간 조건]이 있으면 구상형 답변 시간을 구상형 문항 수로 나눈 값을 문항별 적정 시간으로 보고, 각 문항 소요 시간(questions의 start–end)이 한쪽으로 쏠렸는지, 제한 시간을 넘겼는지 평가합니다. 제한 시간을 넘기면 critical 구간 피드백을 남기고 timing을 2점 이하로 줍니다.
 - alternatives: 어느 문항에나 쓸 수 있는 만능틀 답변(예: "~가 중요하다고 생각합니다", "최선을 다하겠습니다", "항상 노력하겠습니다", "학생 중심으로 하겠습니다")을 실제 발화에서 3~6개 찾고, 문제 상황에 맞춘 근거와 실천 방안이 담긴 대체 답변을 씁니다.`;
 }
 
@@ -84,6 +87,7 @@ export function buildUserPrompt(input: {
   promptText: string;
   hasImage: boolean;
   durationSec: number | null;
+  timeLimits: TimeLimits | null;
 }): string {
   const lines = [
     `평가 모드: ${input.mode === "demo" ? "수업실연" : "심층면접 (구상형·즉답형)"}`,
@@ -93,7 +97,29 @@ export function buildUserPrompt(input: {
     input.promptText.trim() || (input.hasImage ? "(첨부한 문제지 이미지를 참고하세요)" : "(제공되지 않음 — 영상 내용만으로 판단하세요)"),
     input.hasImage && input.promptText.trim() ? "(첨부한 문제지 이미지도 함께 참고하세요)" : null,
     "",
+    ...timeConditionLines(input.mode, input.timeLimits, input.durationSec),
+    "",
     "위 영상을 채점표에 따라 평가해 JSON으로 답하세요.",
   ];
   return lines.filter((l) => l !== null).join("\n");
+}
+
+/** [시간 조건] 블록: 입력한 제한 시간 + 실제 영상 길이(코드로 계산한 사실) */
+function timeConditionLines(mode: EvalMode, t: TimeLimits | null, durationSec: number | null): string[] {
+  const lines = ["[시간 조건]"];
+  const video = durationSec ? formatSeconds(durationSec) : null;
+  if (mode === "demo" && t?.lessonMin) {
+    const limit = t.lessonMin * 60;
+    lines.push(`- 수업실연 제한 시간: ${koreanDuration(limit)}`);
+    if (durationSec) lines.push(`- 실제 영상 길이: ${video} → ${judgeUsage(durationSec, limit).label}`);
+  } else if (mode === "interview" && (t?.preparedMin || t?.instantMin)) {
+    if (t.preparedMin) lines.push(`- 구상형 답변 시간: ${koreanDuration(t.preparedMin * 60)} (구상형 문항 전체 합계)`);
+    if (t.instantMin) lines.push(`- 즉답형 답변 시간: ${koreanDuration(t.instantMin * 60)}`);
+    if (video) lines.push(`- 실제 영상 길이: ${video}`);
+  } else {
+    lines.push("- 제한 시간이 제공되지 않았습니다. 영상 길이와 단계·문항 간 시간 배분만으로 시간 관리를 판단하고, 근거에 그 사실을 밝히세요.");
+    if (video) lines.push(`- 실제 영상 길이: ${video}`);
+  }
+  if (t?.note.trim()) lines.push(`- 시도교육청 조건 메모: ${t.note.trim()}`);
+  return lines;
 }
