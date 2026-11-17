@@ -8,6 +8,7 @@ import {
   type HistoryRecord,
 } from "@/lib/history/types";
 import type { AnalysisReport, EvalMode } from "@/lib/schema/report";
+import type { SelfScore } from "@/lib/selfScore";
 import type { TimeLimits } from "@/lib/timeLimits";
 
 export function newRecord(input: {
@@ -18,6 +19,7 @@ export function newRecord(input: {
   timeLimits?: TimeLimits | null;
   report: AnalysisReport;
   meta: AnalysisMeta | null;
+  selfScore?: SelfScore | null;
 }): HistoryRecord {
   return {
     id: crypto.randomUUID(),

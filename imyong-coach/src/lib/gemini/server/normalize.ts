@@ -50,6 +50,19 @@ function normalize(raw: unknown, durationSec: number | null): unknown {
   }
   if (Array.isArray(root.segments)) root.segments.sort(bySeconds);
 
+  for (const chunk of asArr(root.transcript)) {
+    const c = asObj(chunk);
+    if (!c) continue;
+    c.start = ts(c.start, false);
+    c.end = ts(c.end, false);
+    if ((toSeconds(c.start) ?? 0) > (toSeconds(c.end) ?? 0)) [c.start, c.end] = [c.end, c.start];
+    if (typeof c.text !== "string") c.text = "";
+  }
+  if (Array.isArray(root.transcript)) {
+    root.transcript = root.transcript.filter((c) => typeof asObj(c)?.text === "string" && String(asObj(c)?.text).trim());
+    (root.transcript as unknown[]).sort(bySeconds);
+  }
+
   for (const alt of asArr(root.alternatives)) {
     const a = asObj(alt);
     if (a) a.at = ts(a.at, false);

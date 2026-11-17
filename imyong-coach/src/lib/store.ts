@@ -3,6 +3,7 @@ import type { PreprocessResult } from "@/lib/ffmpeg/preprocess";
 import type { AnalysisMeta, GeminiErrorCode, UploadedFileInfo } from "@/lib/gemini/events";
 import type { HistoryRecord } from "@/lib/history/types";
 import type { AnalysisReport, EvalMode } from "@/lib/schema/report";
+import type { SelfScore } from "@/lib/selfScore";
 import { EMPTY_TIME_LIMITS, type TimeLimits } from "@/lib/timeLimits";
 
 /**
@@ -110,6 +111,8 @@ interface SessionState {
   analyzedInput: AnalyzedInput | null;
   historySave: HistorySaveState | null;
   viewing: ViewingRecord | null;
+  /** 현재 영상에 대한 자기 채점 (영상이 바뀌면 초기화) */
+  selfScore: SelfScore | null;
 
   setMode: (mode: EvalMode) => void;
   setPromptText: (text: string) => void;
@@ -122,6 +125,7 @@ interface SessionState {
   setAnalysis: (result: { report: AnalysisReport; meta: AnalysisMeta; input: AnalyzedInput } | null) => void;
   setHistorySave: (state: HistorySaveState | null) => void;
   setViewing: (viewing: ViewingRecord | null) => void;
+  setSelfScore: (score: SelfScore | null) => void;
 }
 
 function revokeViewing(v: ViewingRecord | null) {
@@ -145,6 +149,7 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
   analyzedInput: null,
   historySave: null,
   viewing: null,
+  selfScore: null,
 
   setMode: (mode) => set({ mode }),
   setPromptText: (promptText) => set({ promptText }),
@@ -173,6 +178,7 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
       analyzedInput: null,
       historySave: null,
       viewing: null,
+      selfScore: null,
     });
   },
 
@@ -194,6 +200,7 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
     ),
 
   setHistorySave: (historySave) => set({ historySave }),
+  setSelfScore: (selfScore) => set({ selfScore }),
 
   setViewing: (viewing) => {
     const prev = get().viewing;

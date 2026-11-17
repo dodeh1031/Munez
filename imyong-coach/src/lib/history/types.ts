@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { AnalysisMeta } from "@/lib/gemini/events";
+import { selfScoreSchema, type SelfScore } from "@/lib/selfScore";
 import { timeLimitsSchema, type TimeLimits } from "@/lib/timeLimits";
 import {
   demoReportSchema,
@@ -28,6 +29,8 @@ export interface HistoryRecord {
   timeLimits?: TimeLimits | null;
   report: AnalysisReport;
   meta: AnalysisMeta | null;
+  /** 자기 채점 (하지 않았으면 없음) */
+  selfScore?: SelfScore | null;
   /** 분석용 압축 영상이 이 브라우저에 저장되어 있는지 */
   hasVideo: boolean;
   source: "local" | "imported";
@@ -48,6 +51,7 @@ export const historyRecordSchema = z
     timeLimits: timeLimitsSchema.nullable().optional().catch(null),
     report: reportSchema,
     meta: z.any().nullable().catch(null),
+    selfScore: selfScoreSchema.nullable().optional().catch(null),
   })
   .refine((r) => r.report.mode === r.mode, { message: "mode와 report.mode가 다릅니다" });
 

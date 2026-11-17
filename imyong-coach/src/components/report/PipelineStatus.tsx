@@ -252,7 +252,17 @@ export function PipelineStatus() {
           );
         })}
       </ol>
-      <p className="mt-3 text-xs text-slate-400">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2">
+        <p className="text-xs text-slate-600">기다리는 동안 같은 채점표로 먼저 자기 채점을 해 보세요.</p>
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent("report:open-tab", { detail: "self" }))}
+          className="rounded-lg bg-white px-2.5 py-1 text-xs font-medium text-indigo-700 ring-1 ring-indigo-200 hover:bg-indigo-50"
+        >
+          자기 채점하기
+        </button>
+      </div>
+      <p className="mt-2 text-xs text-slate-400">
         원본 영상은 브라우저 안에서 압축되고, Gemini에는 압축된 분석용 영상만 전송됩니다.
       </p>
     </div>

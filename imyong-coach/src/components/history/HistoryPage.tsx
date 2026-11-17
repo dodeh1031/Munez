@@ -17,6 +17,7 @@ import type { HistoryRecord } from "@/lib/history/types";
 import { openRecord } from "@/lib/history/viewer";
 import { SCORE_MAX, TONE_CLASS, areaAverage, getRubric, overallScore, toneFor100 } from "@/lib/rubrics";
 import { EVAL_MODES, type EvalMode } from "@/lib/schema/report";
+import { selfOverall } from "@/lib/selfScore";
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" });
 const fmtShort = (iso: string) =>
@@ -298,6 +299,11 @@ export function HistoryPage() {
                               {record.source === "imported" && <span>· 가져온 기록</span>}
                             </p>
                           </div>
+                          {record.selfScore?.mode === record.mode && (
+                            <span className="shrink-0 text-xs text-slate-500" title="자기 채점 종합 점수">
+                              나 <b className="tabular-nums text-slate-700">{selfOverall(rubric, record.selfScore)}</b>
+                            </span>
+                          )}
                           <span className="w-24 shrink-0 text-right">
                             <b className="text-lg tabular-nums">{overall}</b>
                             <span className="text-sm text-slate-400">점 </span>

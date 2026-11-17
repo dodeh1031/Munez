@@ -21,8 +21,10 @@ import {
 
 let controller: AbortController | null = null;
 
-/** 리포트 작성 진행률 추정용 (응답 JSON의 대략적인 길이) */
-const EXPECTED_CHARS = { demo: 9000, interview: 13000 } as const;
+/** 리포트 작성 진행률 추정용 (응답 JSON의 대략적인 길이 = 기본 분량 + 발화 기록 분량(영상 1초당 약 8자)) */
+const BASE_CHARS = { demo: 9000, interview: 13000 } as const;
+const expectedChars = (mode: keyof typeof BASE_CHARS, durationSec: number | null) =>
+  BASE_CHARS[mode] + Math.round((durationSec ?? 300) * 8);
 /** 업로드 파일 만료가 이보다 가까우면 새로 올림 */
 const EXPIRY_MARGIN_MS = 30 * 60 * 1000;
 
@@ -201,7 +203,7 @@ async function analyze(
       onStatus: (message) => set({ detail: message }),
       onProgress: (chars) =>
         set({
-          progress: 0.1 + 0.85 * Math.min(1, chars / EXPECTED_CHARS[input.mode]),
+          progress: 0.1 + 0.85 * Math.min(1, chars / expectedChars(input.mode, input.durationSec)),
           detail: `AI가 리포트를 작성하는 중… ${chars.toLocaleString()}자`,
         }),
     },
@@ -226,7 +228,9 @@ async function saveToHistory(input: {
   }
   session.setHistorySave({ status: "saving" });
   const { video, ...rest } = input;
-  const record = newRecord(rest);
+  const self = useSessionStore.getState().selfScore;
+  // 분석을 기다리는 동안 자기 채점을 했다면 함께 저장
+  const record = newRecord({ ...rest, selfScore: self?.mode === rest.mode ? self : null });
   const history = useHistoryStore.getState();
   try {
     await history.add({ ...record, hasVideo: true }, video);

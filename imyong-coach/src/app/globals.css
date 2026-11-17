@@ -17,3 +17,33 @@ body {
   word-break: keep-all;
   overflow-wrap: break-word;
 }
+
+/* ───────── 인쇄 · PDF ───────── */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+  body {
+    /* 막대·배지 색을 그대로 인쇄 */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-root section {
+    box-shadow: none !important;
+    break-inside: auto;
+  }
+  .print-root li,
+  .print-root tr,
+  .print-root dl {
+    break-inside: avoid;
+  }
+  .print-root h2,
+  .print-root h3 {
+    break-after: avoid;
+  }
+}

@@ -7,12 +7,15 @@ import { Tabs, type TabItem } from "@/components/ui/Tabs";
 import { AlternativeList } from "@/components/report/AlternativeList";
 import { ConditionChecks } from "@/components/report/ConditionChecks";
 import { PipelineStatus } from "@/components/report/PipelineStatus";
+import { PrintButton, PrintableReport, usePrintMode, type PdfName, type PrintInfo } from "@/components/report/PrintReport";
 import { PromptSummary } from "@/components/report/PromptSummary";
 import { QuestionEvalList } from "@/components/report/QuestionEvalList";
 import { RubricTable } from "@/components/report/RubricTable";
 import { ScoreOverview } from "@/components/report/ScoreOverview";
 import { SegmentFeedbackList } from "@/components/report/SegmentFeedbackList";
 import { SelfChecklist } from "@/components/report/SelfChecklist";
+import { SelfScorePanel } from "@/components/report/SelfScorePanel";
+import { SpeechMetricsCard, TranscriptCard } from "@/components/report/SpeechMetricsCard";
 import { TimeUsageCard } from "@/components/report/TimeUsageCard";
 import { VideoPanel, type PlaybackMedia } from "@/components/report/VideoPanel";
 import { VideoSeekProvider } from "@/components/report/VideoSeekContext";
@@ -24,12 +27,27 @@ import { SAMPLE_REPORTS } from "@/lib/mock/sampleReport";
 import { getRubric } from "@/lib/rubrics";
 import type { AnalysisReport } from "@/lib/schema/report";
 import { useSessionStore, type ViewingRecord } from "@/lib/store";
+import type { SelfScore } from "@/lib/selfScore";
 import { limitsForMode, type TimeLimits } from "@/lib/timeLimits";
+
+/** 자기 채점 탭에 필요한 정보 */
+interface SelfScoreContext {
+  score: SelfScore | null;
+  canScore: boolean;
+  /** 실제 AI 결과가 있는지 (샘플이면 false) */
+  aiAvailable: boolean;
+}
+
+/** 진행 카드 등 다른 곳에서 리포트 탭을 바꿀 때 쓰는 이벤트 */
+export const OPEN_REPORT_TAB_EVENT = "report:open-tab";
 
 interface Timing {
   durationSec: number | null;
   timeLimits: TimeLimits | null | undefined;
 }
+
+const fmtDateTime = (v: string | number) =>
+  new Date(v).toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" });
 
 export function ReportDashboard() {
   const viewing = useSessionStore((s) => s.viewing);
@@ -47,6 +65,9 @@ function SessionDashboard() {
   const analyzedInput = useSessionStore((s) => s.analyzedInput);
   const currentLimits = useSessionStore((s) => s.timeLimits);
   const historyCount = useHistoryStore((s) => s.records.length);
+  const selfScore = useSessionStore((s) => s.selfScore);
+  const finishedAt = useSessionStore((s) => s.pipeline.finishedAt);
+  const meta = useSessionStore((s) => s.analysisMeta);
 
   useEffect(() => {
     void useHistoryStore.getState().load();
@@ -102,6 +123,15 @@ function SessionDashboard() {
       prompt={<PromptSummary mode={sessionMode} text={promptText} image={promptImage} timeLimits={timing.timeLimits} />}
       status={<PipelineStatus />}
       timing={timing}
+      self={{ score: selfScore, canScore: video !== null, aiAvailable: !isSample }}
+      printInfo={{
+        title: video?.file.name ?? "샘플 영상",
+        dateLabel: !isSample && finishedAt ? fmtDateTime(finishedAt) : isSample ? "샘플 데이터" : "-",
+        promptText: analyzedInput?.promptText ?? promptText,
+        model: meta && !meta.mock ? meta.model : null,
+        isSample,
+      }}
+      pdfName={{ base: `임용코치_${MODE_META[report.mode].label}`, date: !isSample && finishedAt ? finishedAt : null }}
     />
   );
 }
@@ -185,6 +215,15 @@ function SavedRecordDashboard({ viewing }: { viewing: ViewingRecord }) {
       prompt={<PromptSummary mode={record.mode} text={record.promptText} image={null} timeLimits={record.timeLimits} />}
       status={null}
       timing={{ durationSec: record.durationSec, timeLimits: record.timeLimits }}
+      self={{ score: record.selfScore ?? null, canScore: true, aiAvailable: true }}
+      printInfo={{
+        title: record.title,
+        dateLabel: fmtDateTime(record.createdAt),
+        promptText: record.promptText,
+        model: record.meta?.mock ? null : (record.meta?.model ?? null),
+        isSample: false,
+      }}
+      pdfName={{ base: `임용코치_${MODE_META[record.mode].label}`, date: record.createdAt }}
     />
   );
 }
@@ -197,6 +236,9 @@ function DashboardShell({
   prompt,
   status,
   timing,
+  self,
+  printInfo,
+  pdfName,
 }: {
   report: AnalysisReport;
   tabsKey: string;
@@ -205,10 +247,15 @@ function DashboardShell({
   prompt: React.ReactNode;
   status: React.ReactNode;
   timing: Timing;
+  self: SelfScoreContext;
+  printInfo: PrintInfo;
+  pdfName: PdfName;
 }) {
+  const printing = usePrintMode(pdfName);
+  const [printTranscript, setPrintTranscript] = useState(false);
   return (
     <VideoSeekProvider hasVideo={Boolean(media?.url)}>
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 print:hidden">
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <Link
             href="/"
@@ -220,6 +267,13 @@ function DashboardShell({
           <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700">
             {MODE_META[report.mode].label}
           </span>
+          <div className="ml-auto">
+            <PrintButton
+              includeTranscript={printTranscript}
+              onIncludeTranscriptChange={setPrintTranscript}
+              hasTranscript={Boolean(report.transcript?.length)}
+            />
+          </div>
         </div>
 
         {banner}
@@ -234,18 +288,41 @@ function DashboardShell({
           <div className="min-w-0 space-y-4">
             {status}
             {/* 모드나 기록이 바뀌면 탭 상태를 초기화 */}
-            <ReportTabs key={tabsKey} report={report} timing={timing} />
+            <ReportTabs key={tabsKey} report={report} timing={timing} self={self} />
           </div>
         </div>
       </div>
+
+      {printing && (
+        <PrintableReport
+          report={report}
+          info={printInfo}
+          durationSec={timing.durationSec}
+          timeLimits={timing.timeLimits}
+          selfScore={self.score}
+          aiAvailable={self.aiAvailable}
+          includeTranscript={printTranscript}
+        />
+      )}
     </VideoSeekProvider>
   );
 }
 
-type TabId = "overview" | "questions" | "rubric" | "segments" | "alternatives" | "checklist";
+type TabId = "overview" | "questions" | "rubric" | "segments" | "alternatives" | "speech" | "checklist" | "self";
 
-function ReportTabs({ report, timing }: { report: AnalysisReport; timing: Timing }) {
+function ReportTabs({ report, timing, self }: { report: AnalysisReport; timing: Timing; self: SelfScoreContext }) {
   const [tab, setTab] = useState<TabId>("overview");
+
+  // 진행 카드의 "기다리는 동안 자기 채점하기" 등에서 탭 전환
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const id = (e as CustomEvent<TabId>).detail;
+      if (id) setTab(id);
+    };
+    window.addEventListener(OPEN_REPORT_TAB_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_REPORT_TAB_EVENT, onOpen);
+  }, []);
+  const selfDone = self.score?.mode === report.mode;
   const rubric = getRubric(report.mode);
   const altLabel = MODE_META[report.mode].alternativeLabel;
 
@@ -256,6 +333,8 @@ function ReportTabs({ report, timing }: { report: AnalysisReport; timing: Timing
           { id: "rubric", label: "채점표" },
           { id: "segments", label: "구간 피드백", count: report.segments.length },
           { id: "alternatives", label: altLabel, count: report.alternatives.length },
+          { id: "speech", label: "말하기" },
+          { id: "self", label: selfDone ? "자기 채점 ✓" : "자기 채점" },
         ]
       : [
           { id: "overview", label: "종합" },
@@ -263,7 +342,9 @@ function ReportTabs({ report, timing }: { report: AnalysisReport; timing: Timing
           { id: "rubric", label: "채점표" },
           { id: "segments", label: "구간 피드백", count: report.segments.length },
           { id: "alternatives", label: altLabel, count: report.alternatives.length },
+          { id: "speech", label: "말하기" },
           { id: "checklist", label: "자기점검표" },
+          { id: "self", label: selfDone ? "자기 채점 ✓" : "자기 채점" },
         ];
 
   return (
@@ -281,7 +362,21 @@ function ReportTabs({ report, timing }: { report: AnalysisReport; timing: Timing
         {tab === "rubric" && <RubricTable rubric={rubric} scores={report.scores} />}
         {tab === "segments" && <SegmentFeedbackList segments={report.segments} rubric={rubric} />}
         {tab === "alternatives" && <AlternativeList alternatives={report.alternatives} mode={report.mode} />}
+        {tab === "speech" && (
+          <>
+            <SpeechMetricsCard transcript={report.transcript} mode={report.mode} durationSec={timing.durationSec} />
+            <TranscriptCard transcript={report.transcript} />
+          </>
+        )}
         {tab === "checklist" && report.mode === "interview" && <SelfChecklist checklist={report.checklist} />}
+        {tab === "self" && (
+          <SelfScorePanel
+            rubric={rubric}
+            selfScore={self.score}
+            canScore={self.canScore}
+            aiScores={self.aiAvailable ? report.scores : null}
+          />
+        )}
       </div>
     </div>
   );

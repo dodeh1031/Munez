@@ -66,6 +66,17 @@ export type Alternative = z.infer<typeof alternativeSchema>;
 
 const summary = z.string().describe("총평 2~3문장");
 
+/** 발화 기록: 수험생이 말한 내용을 시간순으로 그대로 받아 적은 것 (말하기 지표 계산의 바탕) */
+export const transcriptChunkSchema = z.object({
+  start: timestamp,
+  end: timestamp,
+  text: z.string().describe("들리는 그대로 받아 적은 발화 (군말·반복 포함, 요약 금지)"),
+});
+export type TranscriptChunk = z.infer<typeof transcriptChunkSchema>;
+const transcript = z
+  .array(transcriptChunkSchema)
+  .describe("수험생 발화 전체를 시간순으로 빠짐없이 (한 항목은 한두 문장, 3초 이상 끊기면 새 항목)");
+
 /* 수업실연 전용 */
 export const conditionCheckSchema = z.object({
   condition: z.string().describe("문제지에 제시된 수업 조건 원문(요약)"),
@@ -118,6 +129,8 @@ export type SegmentFeedback = z.infer<typeof segmentSchema>;
 
 const reportBase = {
   summary,
+  /** 예전 기록·샘플에는 없을 수 있음 */
+  transcript: transcript.optional(),
   scores: rubricScoresSchema,
   segments: z.array(segmentSchema),
   alternatives: z.array(alternativeSchema),
@@ -174,6 +187,7 @@ export function buildResponseSchema(rubric: Rubric) {
 
   if (rubric.mode === "demo") {
     return z.object({
+      transcript,
       segments,
       conditionChecks: z.array(conditionCheckSchema).describe("수업 조건별 반영 여부"),
       scores,
@@ -183,6 +197,7 @@ export function buildResponseSchema(rubric: Rubric) {
   }
 
   return z.object({
+    transcript,
     segments,
     questions: z.array(questionEvalSchema).describe("영상에 나온 문항별 평가 (시간순)"),
     scores,

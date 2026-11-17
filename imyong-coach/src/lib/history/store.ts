@@ -10,6 +10,8 @@ interface HistoryState {
   load: (force?: boolean) => Promise<void>;
   add: (record: HistoryRecord, video?: Blob | null) => Promise<void>;
   addMany: (records: HistoryRecord[]) => Promise<{ added: number; skipped: number }>;
+  /** 기록 내용만 바꿈 (저장된 영상은 그대로) */
+  update: (record: HistoryRecord) => Promise<void>;
   remove: (id: string) => Promise<void>;
 }
 
@@ -43,6 +45,11 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
     for (const r of fresh) await db.putRecord(r);
     set((s) => ({ records: [...s.records, ...fresh].sort(byDate) }));
     return { added: fresh.length, skipped: records.length - fresh.length };
+  },
+
+  update: async (record) => {
+    await db.putRecord(record);
+    set((s) => ({ records: s.records.map((r) => (r.id === record.id ? record : r)) }));
   },
 
   remove: async (id) => {
