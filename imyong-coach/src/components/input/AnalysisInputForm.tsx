@@ -9,7 +9,7 @@ import { ModeToggle } from "@/components/input/ModeToggle";
 import { PromptInput } from "@/components/input/PromptInput";
 import { VideoInput } from "@/components/input/VideoInput";
 import { MODE_META } from "@/lib/constants";
-import { startAnalysis } from "@/lib/pipeline";
+import { isSameAsLastAnalysis, startAnalysis } from "@/lib/pipeline";
 import { useSessionStore } from "@/lib/store";
 
 export function AnalysisInputForm() {
@@ -18,9 +18,18 @@ export function AnalysisInputForm() {
   const hasPrompt = useSessionStore((s) => s.promptText.trim().length > 0 || s.promptImage !== null);
   const hasVideo = useSessionStore((s) => s.video !== null);
   const running = useSessionStore((s) => s.pipeline.status === "running");
+  // 마지막 분석과 입력(모드·문제·영상)이 같으면 다시 분석하지 않고 리포트로 이동 (불필요한 API 비용 방지)
+  const unchanged = useSessionStore(
+    (s) =>
+      Boolean(s.report && s.analyzedInput && s.processed) &&
+      s.analyzedInput?.processedFile === s.processed?.file &&
+      s.analyzedInput?.mode === s.mode &&
+      s.analyzedInput?.promptText === s.promptText &&
+      s.analyzedInput?.image === (s.promptImage?.file ?? null),
+  );
 
   function handleStart() {
-    startAnalysis(); // 이미 실행 중이면 무시됨
+    if (!isSameAsLastAnalysis()) startAnalysis(); // 이미 실행 중이면 무시됨
     router.push("/report");
   }
 
@@ -74,7 +83,7 @@ export function AnalysisInputForm() {
               className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               <Sparkles className={clsx("size-4", running && "animate-pulse")} aria-hidden />
-              {running ? "진행 상황 보기" : "AI 분석 시작"}
+              {running ? "진행 상황 보기" : unchanged ? "리포트 보기" : "AI 분석 시작"}
             </button>
           </div>
         </div>

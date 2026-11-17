@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import { Camera, CameraOff, Circle, LoaderCircle, Mic, RotateCcw, Square, Trash2, Video } from "lucide-react";
 import { MAX_VIDEO_SECONDS } from "@/lib/constants";
-import { formatBytes, formatSeconds } from "@/lib/format";
+import { formatBytes, formatSeconds, timeStamp } from "@/lib/format";
 import { useSessionStore } from "@/lib/store";
 import { fixInfiniteDuration } from "@/lib/video";
 
@@ -32,11 +32,6 @@ function describeError(err: unknown): string {
     default:
       return "카메라를 켜지 못했어요. 브라우저 권한과 장치 연결을 확인해 주세요.";
   }
-}
-
-function fileStamp(d = new Date()) {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
 }
 
 /**
@@ -217,7 +212,7 @@ export function WebcamRecorder() {
       return;
     }
     const ext = type.includes("mp4") ? "mp4" : "webm";
-    const file = new File([blob], `webcam-${fileStamp()}.${ext}`, { type });
+    const file = new File([blob], `webcam-${timeStamp()}.${ext}`, { type });
     setVideo({
       file,
       durationSec,

@@ -23,3 +23,22 @@ export function formatBytes(bytes: number): string {
   }
   return `${value.toFixed(value < 10 ? 1 : 0)} ${units[i]}`;
 }
+
+/**
+ * 다운로드용 파일 이름 (확장자 제외 부분).
+ * 일부 브라우저는 <a download>에 한글이 있으면 이름을 무시하고 "download"로 저장하므로 ASCII만 남깁니다.
+ */
+export function asciiFileBase(name: string, fallback: string): string {
+  const base = name
+    .replace(/\.[^.]+$/, "")
+    .normalize("NFKD")
+    .replace(/[^A-Za-z0-9._-]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return base || fallback;
+}
+
+/** 20261117-1405 형태의 시각 문자열 */
+export function timeStamp(d = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+}

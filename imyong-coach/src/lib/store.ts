@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { PreprocessResult } from "@/lib/ffmpeg/preprocess";
+import type { AnalysisMeta, GeminiErrorCode, UploadedFileInfo } from "@/lib/gemini/events";
 import type { AnalysisReport, EvalMode } from "@/lib/schema/report";
 
 /**
@@ -34,6 +35,19 @@ export interface ProcessedMedia extends PreprocessResult {
   originalSize: number;
 }
 
+/** Gemini에 올린 분석용 영상 (만료 전이면 재분석 때 재사용) */
+export interface UploadedMedia extends UploadedFileInfo {
+  processedFile: File;
+}
+
+/** 어떤 입력으로 분석했는지 — 같은 입력이면 다시 분석하지 않고 리포트만 보여 줌 */
+export interface AnalyzedInput {
+  mode: EvalMode;
+  promptText: string;
+  image: File | null;
+  processedFile: File;
+}
+
 export type PipelineStep = "preprocess" | "upload" | "analyze";
 
 export interface PipelineState {
@@ -43,6 +57,7 @@ export interface PipelineState {
   progress: number;
   detail: string | null;
   error: string | null;
+  errorCode: GeminiErrorCode | null;
   startedAt: number | null;
   finishedAt: number | null;
 }
@@ -53,6 +68,7 @@ const IDLE_PIPELINE: PipelineState = {
   progress: 0,
   detail: null,
   error: null,
+  errorCode: null,
   startedAt: null,
   finishedAt: null,
 };
@@ -65,7 +81,10 @@ interface SessionState {
 
   pipeline: PipelineState;
   processed: ProcessedMedia | null;
+  uploaded: UploadedMedia | null;
   report: AnalysisReport | null;
+  analysisMeta: AnalysisMeta | null;
+  analyzedInput: AnalyzedInput | null;
 
   setMode: (mode: EvalMode) => void;
   setPromptText: (text: string) => void;
@@ -73,7 +92,8 @@ interface SessionState {
   setVideo: (video: Omit<SelectedVideo, "url"> | null) => void;
   setPipeline: (patch: Partial<PipelineState>) => void;
   setProcessed: (media: Omit<ProcessedMedia, "url"> | null) => void;
-  setReport: (report: AnalysisReport | null) => void;
+  setUploaded: (uploaded: UploadedMedia | null) => void;
+  setAnalysis: (result: { report: AnalysisReport; meta: AnalysisMeta; input: AnalyzedInput } | null) => void;
 }
 
 export const useSessionStore = create<SessionState>()((set, get) => ({
@@ -84,7 +104,10 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
 
   pipeline: IDLE_PIPELINE,
   processed: null,
+  uploaded: null,
   report: null,
+  analysisMeta: null,
+  analyzedInput: null,
 
   setMode: (mode) => set({ mode }),
   setPromptText: (promptText) => set({ promptText }),
@@ -104,7 +127,10 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
       video: video ? { ...video, url: URL.createObjectURL(video.file) } : null,
       pipeline: IDLE_PIPELINE,
       processed: null,
+      uploaded: null,
       report: null,
+      analysisMeta: null,
+      analyzedInput: null,
     });
   },
 
@@ -116,5 +142,12 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
     set({ processed: media ? { ...media, url: URL.createObjectURL(media.file) } : null });
   },
 
-  setReport: (report) => set({ report }),
+  setUploaded: (uploaded) => set({ uploaded }),
+
+  setAnalysis: (result) =>
+    set(
+      result
+        ? { report: result.report, analysisMeta: result.meta, analyzedInput: result.input }
+        : { report: null, analysisMeta: null, analyzedInput: null },
+    ),
 }));

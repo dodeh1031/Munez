@@ -53,9 +53,10 @@ export function ReportDashboard() {
           <p className="mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
             <span>
-              지금 보이는 리포트는 <b>{MODE_META[report.mode].label} 채점표 미리보기용 샘플 데이터</b>입니다. 입력
-              화면에서 모드를 바꾸면 다른 채점표를 볼 수 있어요.
-              {video && " 타임스탬프를 누르면 영상 이동도 확인할 수 있습니다."}
+              지금 보이는 리포트는 <b>{MODE_META[report.mode].label} 채점표 미리보기용 샘플 데이터</b>입니다.
+              {video
+                ? " 'AI 분석 시작'을 누르면 내 영상의 실제 분석 결과로 바뀝니다."
+                : " 입력 화면에서 영상을 올리고 분석을 시작하세요."}
             </span>
           </p>
         )}
