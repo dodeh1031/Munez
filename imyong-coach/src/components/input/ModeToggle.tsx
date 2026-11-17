@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import { MessagesSquare, Presentation } from "lucide-react";
 import { MODE_META } from "@/lib/constants";
+import { getRubric } from "@/lib/rubrics";
 import { EVAL_MODES } from "@/lib/schema/report";
 import { useSessionStore } from "@/lib/store";
 
@@ -50,6 +51,19 @@ export function ModeToggle() {
                 <span className="text-xs text-slate-500">{meta.sublabel}</span>
               </span>
               <span className="mt-1 block text-sm text-slate-600">{meta.description}</span>
+              <span className="mt-2.5 flex flex-wrap gap-1">
+                {getRubric(m).areas.map((area) => (
+                  <span
+                    key={area.id}
+                    className={clsx(
+                      "rounded-md px-1.5 py-0.5 text-xs",
+                      selected ? "bg-white text-indigo-700 ring-1 ring-indigo-200" : "bg-slate-100 text-slate-500",
+                    )}
+                  >
+                    {area.label}
+                  </span>
+                ))}
+              </span>
             </span>
           </label>
         );

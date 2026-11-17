@@ -1,16 +1,24 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Info } from "lucide-react";
-import { MODE_META } from "@/lib/constants";
-import { SAMPLE_MODE, SAMPLE_REPORT } from "@/lib/mock/sampleReport";
-import { useSessionStore } from "@/lib/store";
+import { Tabs, type TabItem } from "@/components/ui/Tabs";
 import { AlternativeList } from "@/components/report/AlternativeList";
+import { ConditionChecks } from "@/components/report/ConditionChecks";
 import { PromptSummary } from "@/components/report/PromptSummary";
+import { QuestionEvalList } from "@/components/report/QuestionEvalList";
+import { RubricTable } from "@/components/report/RubricTable";
 import { ScoreOverview } from "@/components/report/ScoreOverview";
 import { SegmentFeedbackList } from "@/components/report/SegmentFeedbackList";
+import { SelfChecklist } from "@/components/report/SelfChecklist";
 import { VideoPanel } from "@/components/report/VideoPanel";
 import { VideoSeekProvider } from "@/components/report/VideoSeekContext";
+import { MODE_META } from "@/lib/constants";
+import { SAMPLE_REPORTS } from "@/lib/mock/sampleReport";
+import { getRubric } from "@/lib/rubrics";
+import type { AnalysisReport } from "@/lib/schema/report";
+import { useSessionStore } from "@/lib/store";
 
 export function ReportDashboard() {
   const video = useSessionStore((s) => s.video);
@@ -19,10 +27,9 @@ export function ReportDashboard() {
   const promptImage = useSessionStore((s) => s.promptImage);
   const realReport = useSessionStore((s) => s.report);
 
-  // 실제 분석 결과가 없으면 1단계 레이아웃 확인용 샘플을 보여 줍니다.
+  // 실제 분석 결과가 없으면, 입력 화면에서 고른 모드의 샘플 리포트를 보여 줍니다.
   const isSample = realReport === null;
-  const report = realReport ?? SAMPLE_REPORT;
-  const reportMode = isSample ? SAMPLE_MODE : sessionMode;
+  const report = realReport ?? SAMPLE_REPORTS[sessionMode];
 
   return (
     <VideoSeekProvider hasVideo={video !== null}>
@@ -36,7 +43,7 @@ export function ReportDashboard() {
           </Link>
           <h1 className="text-xl font-bold tracking-tight">분석 리포트</h1>
           <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700">
-            {MODE_META[reportMode].label}
+            {MODE_META[report.mode].label}
           </span>
         </div>
 
@@ -44,26 +51,68 @@ export function ReportDashboard() {
           <p className="mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
             <span>
-              지금 오른쪽 리포트는 <b>레이아웃 확인용 샘플 데이터</b>입니다. 실제 AI 분석은 다음 단계에서
-              연결됩니다. {video && "타임스탬프를 눌러 영상 이동은 지금도 확인할 수 있어요."}
+              지금 보이는 리포트는 <b>{MODE_META[report.mode].label} 채점표 미리보기용 샘플 데이터</b>입니다. 입력
+              화면에서 모드를 바꾸면 다른 채점표를 볼 수 있어요.
+              {video && " 타임스탬프를 누르면 영상 이동도 확인할 수 있습니다."}
             </span>
           </p>
         )}
 
-        {/* 2단 레이아웃: 왼쪽 영상(고정) · 오른쪽 리포트(스크롤) */}
+        {/* 2단 레이아웃: 왼쪽 영상(고정) · 오른쪽 리포트 */}
         <div className="grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
           <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
             <VideoPanel video={video} />
             <PromptSummary mode={sessionMode} text={promptText} image={promptImage} />
           </aside>
 
-          <div className="min-w-0 space-y-6">
-            <ScoreOverview report={report} mode={reportMode} />
-            <SegmentFeedbackList segments={report.segments} />
-            <AlternativeList alternatives={report.alternatives} mode={reportMode} />
-          </div>
+          {/* 모드가 바뀌면 탭 상태를 초기화 */}
+          <ReportTabs key={report.mode} report={report} />
         </div>
       </div>
     </VideoSeekProvider>
+  );
+}
+
+type TabId = "overview" | "questions" | "rubric" | "segments" | "alternatives" | "checklist";
+
+function ReportTabs({ report }: { report: AnalysisReport }) {
+  const [tab, setTab] = useState<TabId>("overview");
+  const rubric = getRubric(report.mode);
+  const altLabel = MODE_META[report.mode].alternativeLabel;
+
+  const tabs: TabItem<TabId>[] =
+    report.mode === "demo"
+      ? [
+          { id: "overview", label: "종합" },
+          { id: "rubric", label: "채점표" },
+          { id: "segments", label: "구간 피드백", count: report.segments.length },
+          { id: "alternatives", label: altLabel, count: report.alternatives.length },
+        ]
+      : [
+          { id: "overview", label: "종합" },
+          { id: "questions", label: "문항별", count: report.questions.length },
+          { id: "rubric", label: "채점표" },
+          { id: "segments", label: "구간 피드백", count: report.segments.length },
+          { id: "alternatives", label: altLabel, count: report.alternatives.length },
+          { id: "checklist", label: "자기점검표" },
+        ];
+
+  return (
+    <div className="min-w-0 space-y-4">
+      <Tabs tabs={tabs} value={tab} onChange={setTab} label="리포트 항목" idPrefix="report" />
+      <div role="tabpanel" id="report-panel" aria-labelledby={`report-tab-${tab}`} className="space-y-6">
+        {tab === "overview" && (
+          <>
+            <ScoreOverview report={report} rubric={rubric} />
+            {report.mode === "demo" && <ConditionChecks checks={report.conditionChecks} />}
+          </>
+        )}
+        {tab === "questions" && report.mode === "interview" && <QuestionEvalList questions={report.questions} />}
+        {tab === "rubric" && <RubricTable rubric={rubric} scores={report.scores} />}
+        {tab === "segments" && <SegmentFeedbackList segments={report.segments} rubric={rubric} />}
+        {tab === "alternatives" && <AlternativeList alternatives={report.alternatives} mode={report.mode} />}
+        {tab === "checklist" && report.mode === "interview" && <SelfChecklist checklist={report.checklist} />}
+      </div>
+    </div>
   );
 }

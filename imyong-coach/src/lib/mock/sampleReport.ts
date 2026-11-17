@@ -1,96 +1,122 @@
-import type { AnalysisReport, EvalMode } from "@/lib/schema/report";
+import type { AnalysisReport, DemoReport, EvalMode, InterviewReport } from "@/lib/schema/report";
 
 /**
- * 1단계 레이아웃 확인용 샘플 리포트.
- * 3단계에서 실제 Gemini 응답이 들어오면 리포트 화면은 이 데이터 대신 실제 결과를 보여 줍니다.
+ * 레이아웃 확인용 샘플 리포트 (모드별 1개).
+ * 실제 Gemini 분석 결과가 생기면 리포트 화면은 샘플 대신 실제 결과를 보여 줍니다.
  */
-export const SAMPLE_MODE: EvalMode = "demo";
 
-export const SAMPLE_REPORT: AnalysisReport = {
+const SAMPLE_DEMO: DemoReport = {
+  mode: "demo",
   summary:
-    "수업조건 3가지 중 AAC 활용과 모둠 활동은 명확히 구현했지만, 행동지원 전략은 정리 단계에서 한 문장으로만 언급되었습니다. 발문이 대부분 '~알겠죠?' 형태의 확인형이라 학생 반응을 끌어내는 장면이 부족합니다. 시선 처리와 발성은 안정적입니다.",
-  rubric: {
-    content: {
-      score: 20,
-      rationale:
-        "학습목표 제시(00:45)가 명확하고, AAC 활용 조건을 전개 2(10:15~)에서 구체적으로 구현했습니다. 다만 행동지원 조건이 12:10에서 짧게 언급되는 데 그쳤습니다.",
+    "AAC 활용 조건은 충실히 구현했지만 모둠 활동과 행동지원 조건의 반영이 약합니다. 경어와 발성은 안정적이나 '~알겠죠?' 같은 확인형 발문이 많고 기다림이 짧아 학생 참여가 제한됩니다. 정리 단계에 형성평가를 넣으면 수업 운영 능력 점수를 크게 끌어올릴 수 있습니다.",
+  scores: {
+    posture: {
+      stableFlow: { score: 4, at: "03:10", evidence: "'이제 두 번째 활동으로 가 볼까요?'처럼 활동 전환을 자연스럽게 연결합니다." },
+      respect: { score: 5, at: "01:05", evidence: "경어를 일관되게 쓰고, 개별 학생에게는 '지윤아'처럼 이름을 불러 친근하게 다가갑니다." },
+      passion: { score: 4, at: "", evidence: "수업 전반에 밝은 에너지가 유지됩니다." },
+      praise: { score: 3, at: "06:40", evidence: "'잘했어요' 같은 일반적 칭찬이 대부분이고, 행동을 구체적으로 짚는 칭찬은 한 번뿐입니다." },
+      voice: { score: 4, at: "", evidence: "목소리 크기와 발음이 안정적입니다." },
+      pacing: { score: 3, at: "02:30", evidence: "핵심 발문 뒤 1초도 기다리지 않고 바로 정답을 말하는 장면이 반복됩니다." },
+      intonation: { score: 4, at: "10:20", evidence: "학생 반응에 따라 억양을 크게 바꿔 활기를 줍니다." },
+      nonverbal: { score: 3, at: "08:30", evidence: "판서 중 30초가량 등을 보이고, 시선이 오른쪽 학생에게 치우칩니다." },
     },
-    method: {
-      score: 16,
-      rationale:
-        "모둠 활동 지시(05:20~)가 '함께 해 봅시다' 수준이라 역할 분담과 촉진 단계가 드러나지 않습니다.",
+    operation: {
+      interaction: { score: 3, at: "05:20", evidence: "교사–학생 문답은 많지만 학생–학생 상호작용 장면이 거의 없습니다." },
+      facilitator: { score: 3, at: "05:25", evidence: "활동 방법은 설명했으나 역할 분담과 시간 안내가 빠져 있습니다." },
+      engagement: { score: 2, at: "02:30", evidence: "'알겠죠?' 같은 확인형 발문이 대부분이라 확산적 사고를 끌어내지 못합니다." },
+      conditions: { score: 3, at: "10:15", evidence: "AAC 조건은 충실히 구현했으나 모둠 활동·행동지원 조건 반영이 약합니다." },
+      assessment: { score: 2, at: "13:30", evidence: "정리 단계에서 형성평가 없이 차시 예고로 끝납니다." },
     },
-    delivery: {
-      score: 21,
-      rationale:
-        "가상 학생 자리를 고르게 응시하고 목소리 크기·속도가 일정합니다. 판서 중 등을 보이는 시간(08:30)이 다소 깁니다.",
-    },
-    time: {
-      score: 17,
-      rationale: "도입이 4분 가까이 이어졌고, 정리 단계는 1분이 채 되지 않아 급하게 마무리되었습니다.",
+    special: {
+      disability: { score: 4, at: "10:15", evidence: "학생 A의 의사소통 특성에 맞춰 AAC 상징을 미리 준비했습니다." },
+      functional: { score: 3, at: "00:45", evidence: "실생활 인사 상황과의 연결을 도입에서만 짧게 언급합니다." },
+      behavior: { score: 2, at: "12:10", evidence: "'자리에 앉아 볼까요?' 한 문장으로 끝나 행동의 기능에 맞는 중재가 드러나지 않습니다." },
+      individualized: { score: 3, at: "07:00", evidence: "활동지는 수준별로 준비했으나 발문은 모든 학생에게 같습니다." },
+      safety: { score: 4, at: "04:20", evidence: "활동 전 '카드는 한 장씩 가져가요' 규칙을 시각 자료로 안내합니다." },
+      supportStaff: { score: 3, at: "06:00", evidence: "'선생님'이라고만 불러 지원인력 명칭이 모호하고 역할 안내가 짧습니다." },
     },
   },
+  conditionChecks: [
+    {
+      condition: "AAC를 활용할 것",
+      status: "met",
+      at: "10:15",
+      evidence: "학생 A가 AAC로 인사말을 고르고, 교사가 확장 발화로 반응합니다.",
+    },
+    {
+      condition: "모둠 활동을 포함할 것",
+      status: "partial",
+      at: "05:20",
+      evidence: "모둠은 구성했지만 역할·방법 안내가 없어 실제 협력 장면이 드러나지 않습니다.",
+    },
+    {
+      condition: "행동지원 전략을 1가지 이상 제시할 것",
+      status: "missed",
+      at: "12:10",
+      evidence: "자리 이탈 장면에서 지시 한 문장으로 끝나 행동지원 전략으로 보기 어렵습니다.",
+    },
+  ],
   segments: [
     {
       start: "00:00",
       end: "00:45",
-      category: "delivery",
+      area: "posture",
       sentiment: "strength",
       title: "밝은 첫인사와 시선 처리",
       observation: "첫인사와 함께 가상 학생 이름을 부르며 좌우를 고르게 바라봅니다.",
-      suggestion: "지금처럼 학생 이름 호명을 수업 전체에 걸쳐 유지하세요.",
+      suggestion: "학생 이름 호명을 수업 전체에 걸쳐 유지하세요.",
     },
     {
       start: "00:45",
       end: "04:10",
-      category: "time",
+      area: "posture",
       sentiment: "improve",
       title: "도입이 길어짐",
-      observation: "동기유발 영상 내용을 3분 이상 말로 설명하고 있습니다.",
-      suggestion: "도입은 2분 안팎으로 줄이고, 설명 대신 짧은 질문 1~2개로 바로 학습목표에 연결하세요.",
+      observation: "동기유발 영상 내용을 3분 이상 말로 설명합니다.",
+      suggestion: "도입은 2분 안팎으로 줄이고, 짧은 질문 1~2개로 바로 학습목표에 연결하세요.",
     },
     {
       start: "05:20",
       end: "07:10",
-      category: "method",
+      area: "operation",
       sentiment: "improve",
       title: "모둠 활동 지시가 추상적",
       observation: "'친구들과 함께 해 봅시다'라고만 안내하고 역할이나 순서를 제시하지 않습니다.",
-      suggestion: "학생별 역할(카드 고르기·AAC로 말하기)과 교사의 시범–안내–독립 단계를 말로 드러내세요.",
+      suggestion: "학생별 역할(카드 고르기·AAC로 말하기)과 시범–안내–독립 단계를 말로 드러내세요.",
     },
     {
       start: "08:30",
       end: "09:05",
-      category: "delivery",
+      area: "posture",
       sentiment: "improve",
       title: "판서 중 등을 보이는 시간",
       observation: "약 30초 동안 칠판만 바라보며 판서합니다.",
-      suggestion: "몸을 45도로 열고 판서하며 '지금 선생님이 무엇을 쓰고 있을까요?'처럼 말을 이어 가세요.",
+      suggestion: "몸을 45도로 열고 판서하며 '선생님이 무엇을 쓰고 있을까요?'처럼 말을 이어 가세요.",
     },
     {
       start: "10:15",
       end: "11:40",
-      category: "content",
+      area: "special",
       sentiment: "strength",
       title: "AAC 활용 장면이 구체적",
-      observation: "학생 A가 AAC로 인사말을 선택하고, 교사가 즉시 칭찬과 확장 발화를 해 줍니다.",
-      suggestion: "다른 학생의 수준에 맞춘 촉진(신체·언어·시각)도 한 번 더 보여 주면 개별화가 더 분명해집니다.",
+      observation: "학생 A가 AAC로 인사말을 고르고, 교사가 즉시 칭찬과 확장 발화를 해 줍니다.",
+      suggestion: "다른 학생의 수준에 맞춘 촉진(신체·언어·시각)도 한 번 더 보여 주세요.",
     },
     {
       start: "12:10",
       end: "12:40",
-      category: "content",
+      area: "special",
       sentiment: "critical",
       title: "행동지원 조건 반영 미흡",
       observation: "'자리에 앉아 볼까요?' 한 문장으로 행동지원 조건을 처리했습니다.",
-      suggestion: "문제행동 발생 장면을 가정하고 선행사건 중재(시각적 일과표·선택권 제공)와 대체행동 강화를 시연하세요.",
+      suggestion: "선행사건 중재(시각적 일과표·선택권 제공)와 대체행동 강화를 시연하세요.",
     },
     {
       start: "13:30",
       end: "14:10",
-      category: "time",
+      area: "operation",
       sentiment: "critical",
-      title: "정리 단계 급하게 마무리",
+      title: "형성평가 없이 마무리",
       observation: "학습 내용 정리 없이 차시 예고만 하고 수업을 끝냅니다.",
       suggestion: "최소 2분을 확보해 학습목표 도달 여부를 학생 활동으로 확인하세요.",
     },
@@ -115,4 +141,199 @@ export const SAMPLE_REPORT: AnalysisReport = {
       alternative: "선생님이 아침에 교실에 들어오면 어떤 인사를 할까요? AAC로 다시 한번 말해 보고, 성공하면 스티커를 붙여요.",
     },
   ],
+};
+
+const na = { status: "na", at: "", note: "" } as const;
+
+const SAMPLE_INTERVIEW: InterviewReport = {
+  mode: "interview",
+  summary:
+    "자신만의 교사상이 분명하고 담임교사·학부모의 입장에 먼저 공감하는 태도가 강점입니다. 다만 2번 문항부터 '첫째, 둘째' 구조가 무너지고 1번에 시간을 많이 써 3번 문항이 급하게 끝났습니다. 포부와 실천 방안을 '노력하겠습니다' 대신 구체적인 계획으로 바꾸면 교직관·학습지도 영역 점수가 올라갑니다.",
+  scores: {
+    aptitude: {
+      adaptability: { score: 4, at: "07:30", evidence: "자해행동 사례를 원인 분석 → 중재 → 점검 순으로 논리적으로 판단합니다." },
+    },
+    philosophy: {
+      conviction: { score: 4, at: "04:05", evidence: "'한 명의 속도를 기다려 주는 교사'라는 자신만의 교사상을 분명히 제시합니다." },
+      aspiration: { score: 3, at: "05:10", evidence: "포부가 '항상 배우는 자세로 노력하겠다'는 일반적 표현에 머뭅니다." },
+      calling: { score: 4, at: "04:30", evidence: "교육봉사 경험을 들어 특수교사를 선택한 이유를 진정성 있게 말합니다." },
+    },
+    character: {
+      disposition: { score: 4, at: "", evidence: "모든 문항에서 차분하고 협력적인 태도가 일관되게 드러납니다." },
+      knowledge: { score: 3, at: "08:10", evidence: "기능평가 절차는 정확하지만 통합교육의 법적 정의를 부정확하게 인용합니다." },
+    },
+    communication: {
+      reasoning: { score: 3, at: "01:20", evidence: "1번 문항의 도입이 길어 결론(협력 방안)이 늦게 나옵니다." },
+      collaboration: { score: 4, at: "02:40", evidence: "담임교사의 부담에 먼저 공감한 뒤 역할 분담을 제안합니다." },
+    },
+    instruction: {
+      expertise: { score: 3, at: "08:50", evidence: "중재 방안은 적절하나 개별화교육계획(IEP)과의 연계가 드러나지 않습니다." },
+    },
+    delivery: {
+      presence: { score: 4, at: "", evidence: "평가위원 쪽을 고르게 바라보고 자세가 안정적입니다." },
+      voice: { score: 3, at: "10:30", evidence: "즉답형에서 말이 빨라지고 끝맺음이 흐려집니다." },
+      structure: { score: 3, at: "03:55", evidence: "2번 문항부터 '첫째, 둘째' 구조가 사라집니다." },
+      timing: { score: 2, at: "09:30", evidence: "구상형 1번에 3분 이상을 써 3번 문항이 급하게 끝납니다." },
+    },
+  },
+  questions: [
+    {
+      number: 1,
+      format: "prepared",
+      type: "inclusion",
+      start: "00:40",
+      end: "03:50",
+      question: "통합학급 담임교사가 학생의 문제행동을 이유로 통합을 꺼릴 때, 협력을 이끌어 낼 방안 2가지",
+      scores: { understanding: 4, analysis: 3, solution: 4, commitment: 3 },
+      keywordsCovered: ["협력교수", "역할 분담", "정기 협의회"],
+      keywordsMissed: ["긍정적 행동지원 연계", "통합교육 지원 인력"],
+      feedback: "공감 → 방안 제시 흐름이 좋습니다. 도입을 30초 이내로 줄이고, 두 번째 방안에 실행 주기와 주체를 넣으면 구체성이 높아집니다.",
+    },
+    {
+      number: 2,
+      format: "prepared",
+      type: "competency",
+      start: "03:55",
+      end: "06:40",
+      question: "특수교사에게 필요한 역량 2가지와 이를 기르기 위한 노력",
+      scores: { understanding: 4, analysis: 3, solution: 2, commitment: 3 },
+      keywordsCovered: ["전문성", "공감 능력"],
+      keywordsMissed: ["연수 계획", "전문적 학습공동체"],
+      feedback: "역량을 고른 이유는 설득력 있지만, 기르는 방법이 '꾸준히 노력'에 그쳐 실천 계획이 보이지 않습니다.",
+    },
+    {
+      number: 3,
+      format: "prepared",
+      type: "behaviorSupport",
+      start: "06:45",
+      end: "09:30",
+      question: "자해행동을 보이는 학생에 대한 긍정적 행동지원 방안",
+      scores: { understanding: 4, analysis: 4, solution: 3, commitment: 3 },
+      keywordsCovered: ["기능평가", "선행사건 중재", "대체행동"],
+      keywordsMissed: ["가정 연계", "데이터 기반 점검"],
+      feedback: "기능평가 절차 설명이 정확합니다. 시간이 부족해 중재 후 점검과 가정 연계가 빠졌습니다.",
+    },
+    {
+      number: 4,
+      format: "instant",
+      type: "counseling",
+      start: "10:10",
+      end: "12:20",
+      question: "특수학급 입급을 거부하는 학부모 상담",
+      scores: { understanding: 3, analysis: 3, solution: 3, commitment: 4 },
+      keywordsCovered: ["공감", "정보 제공"],
+      keywordsMissed: ["시범 운영 제안", "후속 상담 일정"],
+      feedback: "공감 표현은 자연스럽지만, 학부모가 스스로 결정할 수 있도록 돕는 구체적 대안이 부족합니다.",
+    },
+  ],
+  checklist: {
+    knock: na,
+    door: na,
+    eyeContact: na,
+    bow: na,
+    number: na,
+    seat: na,
+    posture: { status: "pass", at: "", note: "허리를 펴고 안정적인 자세를 유지합니다." },
+    smile: { status: "pass", at: "00:35", note: "답변 시작 전 가벼운 미소를 짓습니다." },
+    gaze: { status: "pass", at: "02:00", note: "좌우 평가위원을 번갈아 바라봅니다." },
+    volume: { status: "pass", at: "", note: "목소리가 또렷하게 들립니다." },
+    speed: { status: "fail", at: "10:30", note: "즉답형에서 말이 빨라집니다." },
+    pronunciation: { status: "pass", at: "", note: "" },
+    clock: { status: "fail", at: "03:40", note: "시계를 확인하지 않아 1번 문항에서 시간을 초과합니다." },
+    structure: { status: "fail", at: "03:55", note: "2번 문항부터 번호·첫째·둘째 구분이 사라집니다." },
+    emphasis: { status: "pass", at: "07:50", note: "'기능평가'를 강조해 말합니다." },
+    colloquial: { status: "fail", at: "05:00", note: "'~거든요' 표현이 반복됩니다." },
+    calm: { status: "pass", at: "", note: "" },
+    fidget: { status: "fail", at: "10:40", note: "즉답형에서 손을 계속 만집니다." },
+    closing: { status: "pass", at: "03:48", note: "문항마다 '이상입니다'로 마무리합니다." },
+    endBow: { status: "pass", at: "12:22", note: "'이상입니다' 후 가볍게 목례합니다." },
+    chair: na,
+    standBow: na,
+    proctor: na,
+    doorClose: na,
+  },
+  segments: [
+    {
+      start: "00:40",
+      end: "01:30",
+      area: "communication",
+      sentiment: "improve",
+      title: "1번 문항 도입이 김",
+      observation: "통합교육의 의미를 50초 가까이 설명한 뒤에야 방안이 나옵니다.",
+      suggestion: "두괄식으로 '두 가지 방안을 말씀드리겠습니다'부터 시작하세요.",
+    },
+    {
+      start: "02:30",
+      end: "03:20",
+      area: "communication",
+      sentiment: "strength",
+      title: "공감 후 협력 방안 제시",
+      observation: "담임교사의 부담을 먼저 인정하고 역할 분담을 제안합니다.",
+      suggestion: "협의 주기(예: 격주)와 공유 도구를 덧붙이면 더 구체적입니다.",
+    },
+    {
+      start: "05:00",
+      end: "05:40",
+      area: "philosophy",
+      sentiment: "improve",
+      title: "포부가 상투적",
+      observation: "'항상 배우는 자세로 노력하겠습니다'로 답변을 마칩니다.",
+      suggestion: "연수·학습공동체 등 실행 계획을 한 문장으로 제시하세요.",
+    },
+    {
+      start: "07:30",
+      end: "08:40",
+      area: "instruction",
+      sentiment: "strength",
+      title: "기능평가 절차가 정확",
+      observation: "면담–관찰–가설 수립 순서를 정확한 용어로 설명합니다.",
+      suggestion: "IEP 목표와 연결하는 한 문장을 추가하면 전문성이 더 드러납니다.",
+    },
+    {
+      start: "09:00",
+      end: "09:30",
+      area: "delivery",
+      sentiment: "critical",
+      title: "3번 문항 시간 부족",
+      observation: "남은 시간이 없어 중재 후 점검 단계를 생략하고 급히 마무리합니다.",
+      suggestion: "구상 시간에 문항별 목표 시간을 정하고, 답변 중 시계를 한 번씩 확인하세요.",
+    },
+    {
+      start: "10:20",
+      end: "11:10",
+      area: "delivery",
+      sentiment: "improve",
+      title: "즉답형에서 말이 빨라짐",
+      observation: "답변 속도가 빨라지고 손을 계속 만집니다.",
+      suggestion: "첫 문장을 말하기 전 한 박자 쉬고, 손은 무릎 위에 가볍게 모으세요.",
+    },
+  ],
+  alternatives: [
+    {
+      at: "01:20",
+      original: "통합교육은 정말 중요하다고 생각합니다.",
+      problem: "어느 문항에나 붙일 수 있는 만능 도입으로, 개념과 근거가 없습니다.",
+      alternative:
+        "통합교육은 장애학생이 또래와 함께 배우며 소속감을 얻는 과정이지만, 담임교사의 부담이 풀리지 않으면 물리적 통합에 그칩니다. 그래서 두 가지 협력 방안을 말씀드리겠습니다.",
+    },
+    {
+      at: "05:10",
+      original: "항상 배우는 자세로 노력하겠습니다.",
+      problem: "의지만 있고 실천 방법이 없어 평가위원이 역량을 판단할 수 없습니다.",
+      alternative:
+        "매 학기 행동지원 연수를 1개 이상 이수하고, 교내 전문적 학습공동체에서 사례 협의를 정기적으로 운영하며 역량을 키우겠습니다.",
+    },
+    {
+      at: "11:30",
+      original: "어머님의 마음을 충분히 이해합니다.",
+      problem: "공감 문장만 있고 학부모의 걱정에 답하는 정보와 대안이 없습니다.",
+      alternative:
+        "어머님, 아이가 친구들과 떨어질까 걱정되시는 마음 잘 알겠습니다. 특수학급은 일부 시간만 개별 지도를 받고 나머지는 원반에서 함께 생활합니다. 한 달간 시범 운영한 뒤 아이의 모습을 함께 보고 다시 결정하시면 어떨까요?",
+    },
+  ],
+};
+
+export const SAMPLE_REPORTS: Record<EvalMode, AnalysisReport> = {
+  demo: SAMPLE_DEMO,
+  interview: SAMPLE_INTERVIEW,
 };

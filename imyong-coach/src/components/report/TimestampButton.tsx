@@ -7,6 +7,7 @@ import { useVideoSeek } from "@/components/report/VideoSeekContext";
 
 export function TimestampButton({ start, end, className }: { start: string; end?: string; className?: string }) {
   const { hasVideo, seekTo } = useVideoSeek();
+  if (!start) return null; // 특정 장면이 없는 근거
   return (
     <button
       type="button"

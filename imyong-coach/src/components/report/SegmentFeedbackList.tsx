@@ -1,10 +1,12 @@
 import { Clock, Lightbulb } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { TimestampButton } from "@/components/report/TimestampButton";
-import { RUBRIC_META, SENTIMENT_META } from "@/lib/constants";
+import { SENTIMENT_META } from "@/lib/constants";
+import type { Rubric } from "@/lib/rubrics";
 import type { SegmentFeedback } from "@/lib/schema/report";
 
-export function SegmentFeedbackList({ segments }: { segments: SegmentFeedback[] }) {
+export function SegmentFeedbackList({ segments, rubric }: { segments: SegmentFeedback[]; rubric: Rubric }) {
+  const areaLabel = (id: string) => rubric.areas.find((a) => a.id === id)?.label ?? id;
   return (
     <Card>
       <CardHeader
@@ -26,7 +28,7 @@ export function SegmentFeedbackList({ segments }: { segments: SegmentFeedback[] 
                     {sentiment.label}
                   </span>
                   <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-                    {RUBRIC_META[seg.category].label}
+                    {areaLabel(seg.area)}
                   </span>
                 </div>
                 <h3 className="mt-1.5 font-medium">{seg.title}</h3>
