@@ -9,12 +9,12 @@
 cd imyong-coach
 npm install                 # postinstall이 ffmpeg.wasm 파일을 public/ffmpeg 로 복사
 cp .env.example .env.local  # GEMINI_API_KEY 입력 (키 발급: https://aistudio.google.com/apikey)
-npm run dev                 # http://localhost:3000
+npm run dev                 # http://localhost:3000 (이 컴퓨터에서만 접속 가능)
 ```
 
 | 스크립트 | 설명 |
 | --- | --- |
-| `npm run dev` | 개발 서버 |
+| `npm run dev` | 개발 서버 — `127.0.0.1`에만 열려 같은 와이파이의 다른 기기에서는 접속할 수 없음 (API 키 보호) |
 | `npm run build` / `npm start` | 프로덕션 빌드 / 실행 |
 | `npm run lint` · `npm run typecheck` | 코드 검사 |
 
