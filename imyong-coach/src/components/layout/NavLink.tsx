@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 
-export function NavLink({ href, children }: { href: "/" | "/report"; children: React.ReactNode }) {
+export function NavLink({ href, children }: { href: "/" | "/report" | "/history"; children: React.ReactNode }) {
   const active = usePathname() === href;
   return (
     <Link

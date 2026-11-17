@@ -18,6 +18,7 @@ export function AppHeader() {
         <nav className="flex shrink-0 items-center gap-1 text-sm">
           <NavLink href="/">새 분석</NavLink>
           <NavLink href="/report">리포트</NavLink>
+          <NavLink href="/history">기록</NavLink>
         </nav>
       </div>
     </header>

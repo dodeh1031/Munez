@@ -4,34 +4,33 @@ import { useLayoutEffect } from "react";
 import Link from "next/link";
 import { Film } from "lucide-react";
 import { formatBytes, formatSeconds } from "@/lib/format";
-import type { ProcessedMedia, SelectedVideo } from "@/lib/store";
-import { useVideoSeek } from "@/components/report/VideoSeekContext";
 import { fixInfiniteDuration } from "@/lib/video";
+import { useVideoSeek } from "@/components/report/VideoSeekContext";
 
-export function VideoPanel({ video, processed }: { video: SelectedVideo | null; processed: ProcessedMedia | null }) {
+/** 왼쪽 플레이어에 띄울 영상 (현재 세션의 영상 또는 저장된 기록의 영상) */
+export interface PlaybackMedia {
+  /** 재생할 주소. null이면 unavailable 안내를 보여 줌 */
+  url: string | null;
+  name: string;
+  size: number | null;
+  durationSec: number | null;
+  /** 파일 이름 옆 보조 설명 (예: 분석용 영상으로 재생 중) */
+  note?: string;
+  unavailable?: { title: string; detail: string };
+}
+
+export function VideoPanel({ media }: { media: PlaybackMedia | null }) {
   const { videoRef } = useVideoSeek();
+  const url = media?.url ?? null;
 
   // cacheComponents 환경에서는 다른 페이지로 이동해도 이 화면이 <Activity>로 숨겨진 채 남습니다.
   // 숨겨질 때 영상이 뒤에서 계속 재생되지 않도록 정지합니다.
   useLayoutEffect(() => {
     const el = videoRef.current;
     return () => el?.pause();
-  }, [videoRef, video, processed]);
+  }, [videoRef, url]);
 
-  // 브라우저가 원본을 재생하지 못하면(HEVC 등) 압축된 분석용 영상으로 재생
-  const src = video ? (video.decodable ? video.url : (processed?.url ?? null)) : null;
-
-  if (video && !src) {
-    return (
-      <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-2xl bg-slate-900 px-6 text-center text-slate-300">
-        <Film className="size-8 text-slate-500" aria-hidden />
-        <p className="text-sm">이 브라우저에서 원본을 재생할 수 없어요.</p>
-        <p className="text-xs text-slate-400">호환 모드 압축이 끝나면 분석용 영상으로 재생됩니다.</p>
-      </div>
-    );
-  }
-
-  if (!video) {
+  if (!media) {
     return (
       <div className="flex aspect-video w-full flex-col items-center justify-center gap-3 rounded-2xl bg-slate-900 px-6 text-center text-slate-300">
         <Film className="size-8 text-slate-500" aria-hidden />
@@ -43,11 +42,22 @@ export function VideoPanel({ video, processed }: { video: SelectedVideo | null; 
     );
   }
 
+  if (!url) {
+    return (
+      <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-2xl bg-slate-900 px-6 text-center text-slate-300">
+        <Film className="size-8 text-slate-500" aria-hidden />
+        <p className="text-sm">{media.unavailable?.title ?? "재생할 영상이 없어요."}</p>
+        {media.unavailable?.detail && <p className="text-xs text-slate-400">{media.unavailable.detail}</p>}
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <video
+        key={url}
         ref={videoRef}
-        src={src ?? undefined}
+        src={url}
         onLoadedMetadata={fixInfiniteDuration}
         controls
         playsInline
@@ -56,12 +66,13 @@ export function VideoPanel({ video, processed }: { video: SelectedVideo | null; 
       />
       <div className="flex items-center justify-between gap-3 px-4 py-2.5 text-xs text-slate-500">
         <span className="truncate font-medium text-slate-700">
-          {video.file.name}
-          {!video.decodable && <span className="ml-1.5 font-normal text-amber-600">(분석용 영상으로 재생 중)</span>}
+          {media.name}
+          {media.note && <span className="ml-1.5 font-normal text-amber-600">{media.note}</span>}
         </span>
         <span className="shrink-0">
-          {formatBytes(video.file.size)}
-          {video.durationSec !== null && ` · ${formatSeconds(video.durationSec)}`}
+          {media.size !== null && formatBytes(media.size)}
+          {media.size !== null && media.durationSec !== null && " · "}
+          {media.durationSec !== null && formatSeconds(media.durationSec)}
         </span>
       </div>
     </div>

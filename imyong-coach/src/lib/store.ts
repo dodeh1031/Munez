@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { PreprocessResult } from "@/lib/ffmpeg/preprocess";
 import type { AnalysisMeta, GeminiErrorCode, UploadedFileInfo } from "@/lib/gemini/events";
+import type { HistoryRecord } from "@/lib/history/types";
 import type { AnalysisReport, EvalMode } from "@/lib/schema/report";
 
 /**
@@ -48,6 +49,22 @@ export interface AnalyzedInput {
   processedFile: File;
 }
 
+/** 기록 화면에서 연 저장된 분석 (현재 세션과 별개로 리포트 화면에 표시) */
+export interface ViewingRecord {
+  record: HistoryRecord;
+  /** 저장된 분석용 영상 (없으면 null) */
+  videoUrl: string | null;
+  /** 사용자가 연결한 원본 영상 (부드러운 재생용, 이번 보기에서만) */
+  originalUrl: string | null;
+  originalName: string | null;
+}
+
+export type HistorySaveState =
+  | { status: "saving" }
+  | { status: "saved"; id: string; withoutVideo: boolean }
+  | { status: "skipped"; reason: string }
+  | { status: "error"; message: string };
+
 export type PipelineStep = "preprocess" | "upload" | "analyze";
 
 export interface PipelineState {
@@ -85,6 +102,8 @@ interface SessionState {
   report: AnalysisReport | null;
   analysisMeta: AnalysisMeta | null;
   analyzedInput: AnalyzedInput | null;
+  historySave: HistorySaveState | null;
+  viewing: ViewingRecord | null;
 
   setMode: (mode: EvalMode) => void;
   setPromptText: (text: string) => void;
@@ -94,6 +113,13 @@ interface SessionState {
   setProcessed: (media: Omit<ProcessedMedia, "url"> | null) => void;
   setUploaded: (uploaded: UploadedMedia | null) => void;
   setAnalysis: (result: { report: AnalysisReport; meta: AnalysisMeta; input: AnalyzedInput } | null) => void;
+  setHistorySave: (state: HistorySaveState | null) => void;
+  setViewing: (viewing: ViewingRecord | null) => void;
+}
+
+function revokeViewing(v: ViewingRecord | null) {
+  if (v?.videoUrl) URL.revokeObjectURL(v.videoUrl);
+  if (v?.originalUrl) URL.revokeObjectURL(v.originalUrl);
 }
 
 export const useSessionStore = create<SessionState>()((set, get) => ({
@@ -108,6 +134,8 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
   report: null,
   analysisMeta: null,
   analyzedInput: null,
+  historySave: null,
+  viewing: null,
 
   setMode: (mode) => set({ mode }),
   setPromptText: (promptText) => set({ promptText }),
@@ -119,9 +147,10 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
   },
 
   setVideo: (video) => {
-    const { video: prev, processed } = get();
+    const { video: prev, processed, viewing } = get();
     if (prev) URL.revokeObjectURL(prev.url);
     if (processed) URL.revokeObjectURL(processed.url);
+    revokeViewing(viewing);
     // 영상이 바뀌면 이전 전처리·분석 결과는 무효 (실행 중인 작업은 pipeline.ts가 감지해 취소)
     set({
       video: video ? { ...video, url: URL.createObjectURL(video.file) } : null,
@@ -131,6 +160,8 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
       report: null,
       analysisMeta: null,
       analyzedInput: null,
+      historySave: null,
+      viewing: null,
     });
   },
 
@@ -150,4 +181,15 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
         ? { report: result.report, analysisMeta: result.meta, analyzedInput: result.input }
         : { report: null, analysisMeta: null, analyzedInput: null },
     ),
+
+  setHistorySave: (historySave) => set({ historySave }),
+
+  setViewing: (viewing) => {
+    const prev = get().viewing;
+    if (prev && prev !== viewing) {
+      if (prev.videoUrl && prev.videoUrl !== viewing?.videoUrl) URL.revokeObjectURL(prev.videoUrl);
+      if (prev.originalUrl && prev.originalUrl !== viewing?.originalUrl) URL.revokeObjectURL(prev.originalUrl);
+    }
+    set({ viewing });
+  },
 }));

@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import clsx from "clsx";
 import { Check, CircleAlert, CircleCheck, Download, FileJson, LoaderCircle, RotateCcw, X } from "lucide-react";
-import { asciiFileBase, formatBytes, formatSeconds, timeStamp } from "@/lib/format";
+import { asciiFileBase, formatBytes, formatSeconds } from "@/lib/format";
+import { downloadHistoryFile, newRecord } from "@/lib/history/files";
+import { useHistoryStore } from "@/lib/history/store";
 import { cancelAnalysis, startAnalysis } from "@/lib/pipeline";
 import { useSessionStore, type PipelineStep } from "@/lib/store";
 
@@ -26,25 +29,44 @@ function useElapsed(startedAt: number | null, running: boolean) {
 
 const n = (v: number | null | undefined) => (typeof v === "number" ? v.toLocaleString() : "-");
 
-function downloadReportJson() {
+/** 이번 분석을 JSON(기록 백업 형식)으로 내보내기 — 다른 컴퓨터의 '기록 불러오기'로 가져올 수 있음 */
+function exportCurrentReport() {
   const s = useSessionStore.getState();
   if (!s.report) return;
-  const data = {
-    savedAt: new Date().toISOString(),
-    video: s.video?.file.name ?? null,
-    promptText: s.analyzedInput?.promptText ?? s.promptText,
-    meta: s.analysisMeta,
-    report: s.report,
-  };
-  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `imyong-report-${s.report.mode}-${timeStamp()}.json`;
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  const saved =
+    s.historySave?.status === "saved"
+      ? useHistoryStore.getState().records.find((r) => r.id === (s.historySave as { id: string }).id)
+      : undefined;
+  const record =
+    saved ??
+    newRecord({
+      mode: s.report.mode,
+      title: s.video?.file.name ?? "영상",
+      promptText: s.analyzedInput?.promptText ?? s.promptText,
+      durationSec: s.video?.durationSec ?? null,
+      report: s.report,
+      meta: s.analysisMeta,
+    });
+  downloadHistoryFile([record], `imyong-report-${record.mode}`);
+}
+
+function HistorySaveNote() {
+  const save = useSessionStore((s) => s.historySave);
+  if (!save) return null;
+  if (save.status === "saving") return <p className="mt-1 text-xs text-slate-500">기록에 저장하는 중…</p>;
+  if (save.status === "skipped") return <p className="mt-1 text-xs text-slate-500">{save.reason}</p>;
+  if (save.status === "error") {
+    return <p className="mt-1 text-xs text-rose-600">기록 저장에 실패했습니다: {save.message} (JSON 내보내기로 보관할 수 있어요)</p>;
+  }
+  return (
+    <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-emerald-700">
+      <Check className="size-3.5" aria-hidden /> 기록에 저장됨
+      {save.withoutVideo && <span className="text-amber-700">(저장 공간이 부족해 영상은 빼고 저장)</span>}
+      <Link href="/history" className="ml-1 font-medium text-indigo-600 hover:underline">
+        기록 보기 →
+      </Link>
+    </p>
+  );
 }
 
 export function PipelineStatus() {
@@ -129,14 +151,16 @@ export function PipelineStatus() {
                 응답 형식 강제가 거부되어 지시문 방식으로 받았습니다. 결과는 같은 기준으로 검증했습니다.
               </p>
             )}
+            <HistorySaveNote />
           </div>
           <div className="flex shrink-0 flex-wrap gap-1.5">
             <button
               type="button"
-              onClick={downloadReportJson}
+              onClick={exportCurrentReport}
+              title="다른 컴퓨터의 '기록 불러오기'로 가져올 수 있는 파일로 저장합니다"
               className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
             >
-              <FileJson className="size-3.5" aria-hidden /> 리포트 저장
+              <FileJson className="size-3.5" aria-hidden /> JSON 내보내기
             </button>
             <button
               type="button"

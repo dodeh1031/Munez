@@ -1,6 +1,9 @@
 import { preprocessVideo } from "@/lib/ffmpeg/preprocess";
 import { GeminiClientError, analyzeWithGemini, uploadToGemini } from "@/lib/gemini/api";
-import type { GeminiErrorCode } from "@/lib/gemini/events";
+import type { AnalysisMeta, GeminiErrorCode } from "@/lib/gemini/events";
+import { newRecord } from "@/lib/history/files";
+import { useHistoryStore } from "@/lib/history/store";
+import type { AnalysisReport } from "@/lib/schema/report";
 import {
   useSessionStore,
   type AnalyzedInput,
@@ -72,6 +75,8 @@ async function run(video: SelectedVideo, ac: AbortController) {
   const mode = snapshot.mode;
   const promptText = snapshot.promptText;
   const image = snapshot.promptImage?.file ?? null;
+  // 저장된 기록을 보고 있었다면 닫고 이번 분석 진행 상황을 보여 줌
+  snapshot.setViewing(null);
 
   set({
     status: "running",
@@ -104,6 +109,15 @@ async function run(video: SelectedVideo, ac: AbortController) {
     const input: AnalyzedInput = { mode, promptText, image, processedFile: media.file };
     useSessionStore.getState().setAnalysis({ ...result, input });
     set({ status: "complete", step: null, progress: 1, detail: null, finishedAt: Date.now() });
+    void saveToHistory({
+      mode,
+      title: video.file.name,
+      promptText,
+      durationSec: video.durationSec ?? media.durationSec,
+      report: result.report,
+      meta: result.meta,
+      video: media.file,
+    });
   } catch (err) {
     const current = useSessionStore.getState();
     // 영상이 바뀌어 취소된 경우엔 setVideo가 이미 상태를 초기화함
@@ -181,4 +195,40 @@ async function analyze(
         }),
     },
   );
+}
+
+/** 분석 결과를 브라우저 기록(IndexedDB)에 저장. 영상까지 저장이 안 되면(용량 부족 등) 리포트만이라도 저장 */
+async function saveToHistory(input: {
+  mode: AnalyzedInput["mode"];
+  title: string;
+  promptText: string;
+  durationSec: number | null;
+  report: AnalysisReport;
+  meta: AnalysisMeta;
+  video: File;
+}) {
+  const session = useSessionStore.getState();
+  if (input.meta.mock) {
+    session.setHistorySave({ status: "skipped", reason: "모의(mock) 결과는 기록에 저장하지 않습니다." });
+    return;
+  }
+  session.setHistorySave({ status: "saving" });
+  const { video, ...rest } = input;
+  const record = newRecord(rest);
+  const history = useHistoryStore.getState();
+  try {
+    await history.add({ ...record, hasVideo: true }, video);
+    useSessionStore.getState().setHistorySave({ status: "saved", id: record.id, withoutVideo: false });
+  } catch (err) {
+    console.warn("[history] 영상 포함 저장 실패, 리포트만 저장 시도", err);
+    try {
+      await history.add(record, null);
+      useSessionStore.getState().setHistorySave({ status: "saved", id: record.id, withoutVideo: true });
+    } catch (err2) {
+      useSessionStore.getState().setHistorySave({
+        status: "error",
+        message: err2 instanceof Error ? err2.message : String(err2),
+      });
+    }
+  }
 }
