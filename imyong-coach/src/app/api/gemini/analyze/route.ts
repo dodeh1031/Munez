@@ -8,7 +8,7 @@ import {
   type Part,
 } from "@google/genai";
 import { analyzePayloadSchema, type AnalyzeEvent, type AnalyzePayload, type TokenUsage } from "@/lib/gemini/events";
-import { createGeminiClient, getGeminiConfig } from "@/lib/gemini/server/config";
+import { createGeminiClient, getGeminiConfig, resolveModel } from "@/lib/gemini/server/config";
 import { GeminiError, isMediaResolutionRejection, isSchemaRejection, toGeminiError } from "@/lib/gemini/server/errors";
 import { ndjsonResponse } from "@/lib/gemini/server/ndjson";
 import { parseModelJson, toReport } from "@/lib/gemini/server/normalize";
@@ -48,6 +48,9 @@ export async function POST(request: Request) {
     payload = null;
   }
 
+  // 화면에서 고른 모델 (허용 목록에 없으면 기본 모델)
+  const model = resolveModel(config, payload?.model);
+
   return ndjsonResponse<AnalyzeEvent>(request, async (send, signal) => {
     const started = Date.now();
     try {
@@ -80,13 +83,13 @@ export async function POST(request: Request) {
         maxOutputTokens: 65536,
         abortSignal: signal,
         // 2.5 계열은 낮은 temperature로 채점 일관성↑ (3·4 계열은 temperature를 무시하므로 지정하지 않음)
-        ...(config.model.startsWith("gemini-2") ? { temperature: 0.4 } : {}),
+        ...(model.startsWith("gemini-2") ? { temperature: 0.4 } : {}),
         // 3·4 계열: 추론 깊이 (설정한 경우만)
-        ...(config.thinkingLevel && !config.model.startsWith("gemini-2")
+        ...(config.thinkingLevel && !model.startsWith("gemini-2")
           ? { thinkingConfig: { thinkingLevel: config.thinkingLevel } }
           : {}),
       };
-      const baseRequest = { model: config.model, contents: [createUserContent(parts)] };
+      const baseRequest = { model, contents: [createUserContent(parts)] };
 
       send({ type: "status", message: "AI가 영상을 보고 채점하는 중… (영상 길이에 따라 1~3분)" });
       let schemaFallback = false;
@@ -152,7 +155,7 @@ export async function POST(request: Request) {
         type: "done",
         report,
         meta: {
-          model: config.model,
+          model,
           mock: false,
           elapsedMs: Date.now() - started,
           usage: toUsage(usage),
@@ -161,7 +164,7 @@ export async function POST(request: Request) {
       });
     } catch (err) {
       if (signal.aborted) return;
-      const e = toGeminiError(err, config.model, "analyze");
+      const e = toGeminiError(err, model, "analyze");
       console.error("[api/gemini/analyze]", e.code, err);
       send({ type: "error", code: e.code, message: e.message });
     }

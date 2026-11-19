@@ -7,6 +7,7 @@ import { Check, CircleAlert, CircleCheck, Download, FileJson, LoaderCircle, Rota
 import { asciiFileBase, formatBytes, formatSeconds } from "@/lib/format";
 import { downloadHistoryFile, newRecord } from "@/lib/history/files";
 import { useHistoryStore } from "@/lib/history/store";
+import { modelLabel } from "@/lib/models";
 import { cancelAnalysis, startAnalysis } from "@/lib/pipeline";
 import { useSessionStore, type PipelineStep } from "@/lib/store";
 
@@ -131,7 +132,7 @@ export function PipelineStatus() {
           <div className="min-w-0 flex-1">
             <p className="font-semibold">{meta?.mock ? "모의 분석 완료 (실제 AI 분석 아님)" : "AI 분석 완료"}</p>
             <p className="mt-0.5 text-sm text-slate-600">
-              {meta && !meta.mock && <>{meta.model} · </>}
+              {meta && !meta.mock && <>{modelLabel(meta.model)} · </>}
               {total !== null && <>총 {formatSeconds(total)}</>}
               {meta?.usage && (
                 <span className="text-slate-500">

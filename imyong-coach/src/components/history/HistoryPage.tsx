@@ -18,6 +18,7 @@ import { openRecord } from "@/lib/history/viewer";
 import { SCORE_MAX, TONE_CLASS, areaAverage, getRubric, overallScore, toneFor100 } from "@/lib/rubrics";
 import { EVAL_MODES, type EvalMode } from "@/lib/schema/report";
 import { selfOverall } from "@/lib/selfScore";
+import { modelLabel } from "@/lib/models";
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" });
 const fmtShort = (iso: string) =>
@@ -296,6 +297,7 @@ export function HistoryPage() {
                                   · <Video className="size-3" aria-hidden /> 영상 저장됨
                                 </span>
                               )}
+                              {record.meta?.model && record.meta.model !== "mock" && <span>· {modelLabel(record.meta.model)}</span>}
                               {record.source === "imported" && <span>· 가져온 기록</span>}
                             </p>
                           </div>

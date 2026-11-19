@@ -25,6 +25,7 @@ import { useHistoryStore } from "@/lib/history/store";
 import { attachOriginalVideo, closeRecord } from "@/lib/history/viewer";
 import { SAMPLE_REPORTS } from "@/lib/mock/sampleReport";
 import { getRubric } from "@/lib/rubrics";
+import { modelLabel } from "@/lib/models";
 import type { AnalysisReport } from "@/lib/schema/report";
 import { useSessionStore, type ViewingRecord } from "@/lib/store";
 import type { SelfScore } from "@/lib/selfScore";
@@ -159,6 +160,7 @@ function SavedRecordDashboard({ viewing }: { viewing: ViewingRecord }) {
       <FolderOpen className="size-4 shrink-0 text-indigo-600" aria-hidden />
       <span className="min-w-0 flex-1 text-slate-700">
         <b>저장된 기록</b> · {when} · {record.title}
+        {record.meta?.model && record.meta.model !== "mock" && <> · {modelLabel(record.meta.model)}</>}
         {record.source === "imported" && <span className="ml-1.5 text-xs text-slate-500">(가져온 기록)</span>}
       </span>
       <input

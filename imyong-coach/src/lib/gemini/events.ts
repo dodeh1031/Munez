@@ -65,6 +65,16 @@ export const analyzePayloadSchema = z.object({
   promptText: z.string().max(20000),
   durationSec: z.number().positive().nullable(),
   timeLimits: timeLimitsSchema.nullable(),
+  /** 화면에서 고른 모델 (null이면 서버 기본값) */
+  model: z.string().max(100).nullable().catch(null),
   file: z.object({ uri: z.string().min(1), mimeType: z.string().min(1) }),
 });
 export type AnalyzePayload = z.infer<typeof analyzePayloadSchema>;
+
+/** GET /api/gemini/config 응답 (API 키 값은 절대 포함하지 않음) */
+export interface GeminiClientConfig {
+  defaultModel: string;
+  hasApiKey: boolean;
+  mock: boolean;
+  options: { id: string; label: string; badge: string; description: string }[];
+}

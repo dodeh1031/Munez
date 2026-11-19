@@ -44,7 +44,8 @@ export function isSameAsLastAnalysis(): boolean {
       last.mode === s.mode &&
       last.promptText === s.promptText &&
       last.image === (s.promptImage?.file ?? null) &&
-      sameLimits(last.timeLimits, limitsForMode(s.timeLimits, s.mode)),
+      sameLimits(last.timeLimits, limitsForMode(s.timeLimits, s.mode)) &&
+      last.model === s.modelChoice,
   );
 }
 
@@ -80,6 +81,7 @@ async function run(video: SelectedVideo, ac: AbortController) {
   const promptText = snapshot.promptText;
   const image = snapshot.promptImage?.file ?? null;
   const timeLimits = limitsForMode(snapshot.timeLimits, mode);
+  const model = snapshot.modelChoice;
   // 저장된 기록을 보고 있었다면 닫고 이번 분석 진행 상황을 보여 줌
   snapshot.setViewing(null);
 
@@ -103,15 +105,15 @@ async function run(video: SelectedVideo, ac: AbortController) {
     let uploaded = await ensureUploaded(media, signal, false);
     let result;
     try {
-      result = await analyze(uploaded, { mode, promptText, image, timeLimits, durationSec: video.durationSec ?? media.durationSec }, signal);
+      result = await analyze(uploaded, { mode, promptText, image, timeLimits, model, durationSec: video.durationSec ?? media.durationSec }, signal);
     } catch (err) {
       if (!(err instanceof GeminiClientError && err.code === "FILE_EXPIRED")) throw err;
       uploaded = await ensureUploaded(media, signal, true);
-      result = await analyze(uploaded, { mode, promptText, image, timeLimits, durationSec: video.durationSec ?? media.durationSec }, signal);
+      result = await analyze(uploaded, { mode, promptText, image, timeLimits, model, durationSec: video.durationSec ?? media.durationSec }, signal);
     }
     if (signal.aborted) return;
 
-    const input: AnalyzedInput = { mode, promptText, image, processedFile: media.file, timeLimits };
+    const input: AnalyzedInput = { mode, promptText, image, processedFile: media.file, timeLimits, model };
     useSessionStore.getState().setAnalysis({ ...result, input });
     set({ status: "complete", step: null, progress: 1, detail: null, finishedAt: Date.now() });
     void saveToHistory({
@@ -184,6 +186,7 @@ async function analyze(
     promptText: string;
     image: File | null;
     timeLimits: TimeLimits;
+    model: string | null;
     durationSec: number | null;
   },
   signal: AbortSignal,
@@ -195,6 +198,7 @@ async function analyze(
       promptText: input.promptText,
       durationSec: input.durationSec,
       timeLimits: hasLimits(input.timeLimits) ? input.timeLimits : null,
+      model: input.model,
       file: { uri: uploaded.uri, mimeType: uploaded.mimeType },
     },
     input.image,

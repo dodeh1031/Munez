@@ -1,5 +1,6 @@
 import "server-only";
 import { GoogleGenAI, MediaResolution, ThinkingLevel } from "@google/genai";
+import { MODEL_OPTIONS } from "@/lib/models";
 
 const RESOLUTIONS: Record<string, MediaResolution> = {
   low: MediaResolution.MEDIA_RESOLUTION_LOW,
@@ -15,10 +16,10 @@ const THINKING_LEVELS: Record<string, ThinkingLevel> = {
 };
 
 /**
- * 기본 모델 — Gemini 4 Neon (2026-11-18 출시, 영상·구조화 출력 지원)
- * gemini-4-argon은 Gemini 앱·AI Studio 추천 목록에서 빠졌고, gemini-2.5-pro는 서비스 종료 중
+ * 기본 모델 — Gemini 4 Hydrogen (평소 연습용: 저렴, 근거를 지어낼 확률이 낮은 편)
+ * 화면에서 분석마다 Neon 등으로 바꿀 수 있음. gemini-4-argon·gemini-2.5-pro는 목록에서 빠지거나 종료 중
  */
-export const DEFAULT_MODEL = "gemini-4-neon";
+export const DEFAULT_MODEL = "gemini-4-hydrogen";
 
 /** .env.local 설정값 (서버에서만 읽음 — API 키는 브라우저로 절대 전달되지 않음) */
 export function getGeminiConfig() {
@@ -39,6 +40,12 @@ export function getGeminiConfig() {
 }
 
 export type GeminiConfig = ReturnType<typeof getGeminiConfig>;
+
+/** 화면에서 고른 모델이 허용 목록(또는 .env.local 모델)에 있으면 그 모델, 아니면 기본 모델 */
+export function resolveModel(config: GeminiConfig, requested: string | null | undefined): string {
+  if (requested && (requested === config.model || MODEL_OPTIONS.some((m) => m.id === requested))) return requested;
+  return config.model;
+}
 
 export function createGeminiClient(config: GeminiConfig & { apiKey: string }) {
   return new GoogleGenAI({

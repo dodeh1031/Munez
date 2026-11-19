@@ -77,7 +77,7 @@ imyong-coach/
 | 변수 | 기본값 | 설명 |
 | --- | --- | --- |
 | `GEMINI_API_KEY` | (필수) | 서버에서만 사용, 브라우저로 전달되지 않음 |
-| `GEMINI_MODEL` | `gemini-4-neon` | 2026-11-18 출시 모델(유료 전용). `gemini-4-argon`·`gemini-2.5-pro`는 목록에서 빠지거나 종료 중이라 막힐 수 있음 |
+| `GEMINI_MODEL` | `gemini-4-hydrogen` | 기본 선택 모델. 입력 화면에서 분석마다 **Hydrogen(평소 연습)·Neon(정밀 점검)** 중 고를 수 있음 (목록: `src/lib/models.ts`) |
 | `GEMINI_THINKING_LEVEL` | (비움 = 모델 기본값, Neon은 high) | `low` / `medium` / `high` / `xhigh` — 높을수록 깊이 따지지만 느리고 출력 토큰 증가 |
 | `GEMINI_MEDIA_RESOLUTION` | `low` | 프레임당 토큰 low≈64 / medium≈256. 15분 영상은 low가 토큰을 약 1/3로 줄임 |
 | `GEMINI_MOCK` | (비움) | `1`이면 API 호출 없이 샘플 리포트로 화면 흐름만 테스트 |

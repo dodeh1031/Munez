@@ -6,6 +6,7 @@ import clsx from "clsx";
 import { CircleCheck, FileText, Sparkles, Timer, Video } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { ModeToggle } from "@/components/input/ModeToggle";
+import { ModelPicker } from "@/components/input/ModelPicker";
 import { PromptInput } from "@/components/input/PromptInput";
 import { TimeLimitInput } from "@/components/input/TimeLimitInput";
 import { VideoInput } from "@/components/input/VideoInput";
@@ -29,7 +30,8 @@ export function AnalysisInputForm() {
       s.analyzedInput?.mode === s.mode &&
       s.analyzedInput?.promptText === s.promptText &&
       s.analyzedInput?.image === (s.promptImage?.file ?? null) &&
-      sameLimits(s.analyzedInput?.timeLimits, limitsForMode(s.timeLimits, s.mode)),
+      sameLimits(s.analyzedInput?.timeLimits, limitsForMode(s.timeLimits, s.mode)) &&
+      s.analyzedInput?.model === s.modelChoice,
   );
 
   function handleStart() {
@@ -41,8 +43,11 @@ export function AnalysisInputForm() {
     <div className="space-y-6">
       <Card>
         <CardHeader step={1} title="평가 모드" description="연습한 시험 유형을 고르면 분석 기준이 달라집니다." />
-        <div className="p-5">
+        <div className="space-y-5 p-5">
           <ModeToggle />
+          <div className="border-t border-slate-100 pt-4">
+            <ModelPicker />
+          </div>
         </div>
       </Card>
 

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { PreprocessResult } from "@/lib/ffmpeg/preprocess";
-import type { AnalysisMeta, GeminiErrorCode, UploadedFileInfo } from "@/lib/gemini/events";
+import type { AnalysisMeta, GeminiClientConfig, GeminiErrorCode, UploadedFileInfo } from "@/lib/gemini/events";
 import type { HistoryRecord } from "@/lib/history/types";
 import type { AnalysisReport, EvalMode } from "@/lib/schema/report";
 import type { SelfScore } from "@/lib/selfScore";
@@ -51,6 +51,8 @@ export interface AnalyzedInput {
   processedFile: File;
   /** 이번 분석에 쓴 시간 조건 (모드에 맞는 값만) */
   timeLimits: TimeLimits;
+  /** 이번 분석에 쓴 모델 (null = 서버 기본값) */
+  model: string | null;
 }
 
 /** 기록 화면에서 연 저장된 분석 (현재 세션과 별개로 리포트 화면에 표시) */
@@ -102,6 +104,10 @@ interface SessionState {
   timeLimits: TimeLimits;
   /** 저장된 시간 조건을 이번 세션에 불러왔는지 */
   timeLimitsLoaded: boolean;
+  /** 화면에서 고른 분석 모델 (null = 서버 기본값) */
+  modelChoice: string | null;
+  /** 서버 설정 (기본 모델·선택지·API 키 설정 여부) */
+  serverConfig: GeminiClientConfig | null;
 
   pipeline: PipelineState;
   processed: ProcessedMedia | null;
@@ -118,6 +124,8 @@ interface SessionState {
   setPromptText: (text: string) => void;
   setPromptImage: (file: File | null) => void;
   setTimeLimits: (patch: Partial<TimeLimits>, options?: { loaded?: boolean }) => void;
+  setModelChoice: (model: string | null) => void;
+  setServerConfig: (config: GeminiClientConfig) => void;
   setVideo: (video: Omit<SelectedVideo, "url"> | null) => void;
   setPipeline: (patch: Partial<PipelineState>) => void;
   setProcessed: (media: Omit<ProcessedMedia, "url"> | null) => void;
@@ -140,6 +148,8 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
   video: null,
   timeLimits: EMPTY_TIME_LIMITS,
   timeLimitsLoaded: false,
+  modelChoice: null,
+  serverConfig: null,
 
   pipeline: IDLE_PIPELINE,
   processed: null,
@@ -153,6 +163,8 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
 
   setMode: (mode) => set({ mode }),
   setPromptText: (promptText) => set({ promptText }),
+  setModelChoice: (modelChoice) => set({ modelChoice }),
+  setServerConfig: (serverConfig) => set({ serverConfig }),
   setTimeLimits: (patch, options) =>
     set((s) => ({ timeLimits: { ...s.timeLimits, ...patch }, timeLimitsLoaded: options?.loaded ?? s.timeLimitsLoaded })),
 

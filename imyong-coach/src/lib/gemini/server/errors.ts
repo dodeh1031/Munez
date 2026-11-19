@@ -38,10 +38,10 @@ export function toGeminiError(err: unknown, model: string, context: "upload" | "
       text.includes("not supported for generatecontent") ||
       text.includes("no longer available"))
   ) {
-    const hint = model === DEFAULT_MODEL ? "최신 Pro 모델 이름" : `'${DEFAULT_MODEL}'`;
+    const hint = model === DEFAULT_MODEL ? "" : ` (기본값 '${DEFAULT_MODEL}')`;
     return new GeminiError(
       "MODEL_NOT_FOUND",
-      `모델 '${model}'을(를) 사용할 수 없습니다(서비스 종료·새 사용자 제한 등). .env.local의 GEMINI_MODEL을 ${hint}(으)로 바꾸고 개발 서버를 다시 시작하세요.`,
+      `모델 '${model}'을(를) 사용할 수 없습니다(서비스 종료·새 사용자 제한 등). 입력 화면에서 다른 모델을 고르거나, .env.local의 GEMINI_MODEL을 AI Studio에 있는 최신 모델 이름${hint}으로 바꾸고 개발 서버를 다시 시작하세요.`,
     );
   }
   if (context === "upload" && status !== undefined && status < 500 && status !== 403) {
