@@ -1,6 +1,7 @@
+import { buildPreviousFeedback } from "@/lib/followUp";
 import { preprocessVideo } from "@/lib/ffmpeg/preprocess";
 import { GeminiClientError, analyzeWithGemini, uploadToGemini } from "@/lib/gemini/api";
-import type { AnalysisMeta, GeminiErrorCode } from "@/lib/gemini/events";
+import type { AnalysisMeta, GeminiErrorCode, PreviousFeedback } from "@/lib/gemini/events";
 import { newRecord } from "@/lib/history/files";
 import { useHistoryStore } from "@/lib/history/store";
 import type { AnalysisReport } from "@/lib/schema/report";
@@ -45,7 +46,8 @@ export function isSameAsLastAnalysis(): boolean {
       last.promptText === s.promptText &&
       last.image === (s.promptImage?.file ?? null) &&
       sameLimits(last.timeLimits, limitsForMode(s.timeLimits, s.mode)) &&
-      last.model === s.modelChoice,
+      last.model === s.modelChoice &&
+      last.compareWith === s.compareWith,
   );
 }
 
@@ -82,6 +84,7 @@ async function run(video: SelectedVideo, ac: AbortController) {
   const image = snapshot.promptImage?.file ?? null;
   const timeLimits = limitsForMode(snapshot.timeLimits, mode);
   const model = snapshot.modelChoice;
+  const compareWith = snapshot.compareWith;
   // 저장된 기록을 보고 있었다면 닫고 이번 분석 진행 상황을 보여 줌
   snapshot.setViewing(null);
 
@@ -97,6 +100,9 @@ async function run(video: SelectedVideo, ac: AbortController) {
   });
 
   try {
+    // 비교할 지난 기록의 피드백 (기록이 지워졌거나 모드가 다르면 비교하지 않음)
+    const previous = await loadPreviousFeedback(compareWith, mode);
+
     // ① 전처리
     const media = await ensureProcessed(video, signal);
     if (signal.aborted) return;
@@ -105,15 +111,15 @@ async function run(video: SelectedVideo, ac: AbortController) {
     let uploaded = await ensureUploaded(media, signal, false);
     let result;
     try {
-      result = await analyze(uploaded, { mode, promptText, image, timeLimits, model, durationSec: video.durationSec ?? media.durationSec }, signal);
+      result = await analyze(uploaded, { mode, promptText, image, timeLimits, model, previous, durationSec: video.durationSec ?? media.durationSec }, signal);
     } catch (err) {
       if (!(err instanceof GeminiClientError && err.code === "FILE_EXPIRED")) throw err;
       uploaded = await ensureUploaded(media, signal, true);
-      result = await analyze(uploaded, { mode, promptText, image, timeLimits, model, durationSec: video.durationSec ?? media.durationSec }, signal);
+      result = await analyze(uploaded, { mode, promptText, image, timeLimits, model, previous, durationSec: video.durationSec ?? media.durationSec }, signal);
     }
     if (signal.aborted) return;
 
-    const input: AnalyzedInput = { mode, promptText, image, processedFile: media.file, timeLimits, model };
+    const input: AnalyzedInput = { mode, promptText, image, processedFile: media.file, timeLimits, model, compareWith };
     useSessionStore.getState().setAnalysis({ ...result, input });
     set({ status: "complete", step: null, progress: 1, detail: null, finishedAt: Date.now() });
     void saveToHistory({
@@ -144,6 +150,13 @@ async function run(video: SelectedVideo, ac: AbortController) {
       finishedAt: Date.now(),
     });
   }
+}
+
+async function loadPreviousFeedback(id: string | null, mode: AnalyzedInput["mode"]): Promise<PreviousFeedback | null> {
+  if (!id) return null;
+  await useHistoryStore.getState().load();
+  const record = useHistoryStore.getState().records.find((r) => r.id === id);
+  return record && record.mode === mode ? buildPreviousFeedback(record) : null;
 }
 
 async function ensureProcessed(video: SelectedVideo, signal: AbortSignal): Promise<ProcessedMedia> {
@@ -187,6 +200,7 @@ async function analyze(
     image: File | null;
     timeLimits: TimeLimits;
     model: string | null;
+    previous: PreviousFeedback | null;
     durationSec: number | null;
   },
   signal: AbortSignal,
@@ -199,6 +213,7 @@ async function analyze(
       durationSec: input.durationSec,
       timeLimits: hasLimits(input.timeLimits) ? input.timeLimits : null,
       model: input.model,
+      previous: input.previous,
       file: { uri: uploaded.uri, mimeType: uploaded.mimeType },
     },
     input.image,

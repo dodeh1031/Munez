@@ -37,6 +37,24 @@ export interface TokenUsage {
   total: number | null;
 }
 
+/** 지난 연습에서 받은 피드백 (반영 여부 확인용). 화면에서 고른 기록으로 만듦 */
+export const previousFeedbackSchema = z.object({
+  recordId: z.string().min(1).max(200),
+  createdAt: z.string().max(40),
+  overall: z.number().min(0).max(100),
+  items: z
+    .array(
+      z.object({
+        id: z.string().regex(/^p\d{1,2}$/),
+        source: z.string().max(80),
+        text: z.string().min(1).max(400),
+      }),
+    )
+    .min(1)
+    .max(10),
+});
+export type PreviousFeedback = z.infer<typeof previousFeedbackSchema>;
+
 export interface AnalysisMeta {
   model: string;
   mock: boolean;
@@ -68,6 +86,8 @@ export const analyzePayloadSchema = z.object({
   /** 화면에서 고른 모델 (null이면 서버 기본값) */
   model: z.string().max(100).nullable().catch(null),
   file: z.object({ uri: z.string().min(1), mimeType: z.string().min(1) }),
+  /** 비교할 지난 연습 피드백 (없으면 null). 형식이 틀리면 비교 없이 분석 */
+  previous: previousFeedbackSchema.nullable().optional().catch(null),
 });
 export type AnalyzePayload = z.infer<typeof analyzePayloadSchema>;
 

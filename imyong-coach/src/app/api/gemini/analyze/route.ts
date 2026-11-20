@@ -55,6 +55,7 @@ export async function POST(request: Request) {
     const started = Date.now();
     try {
       if (!payload) throw new GeminiError("BAD_REQUEST", badRequest);
+      const previous = payload.previous ?? null;
       if (config.mock) return await runMock(payload, send, signal, started);
       if (!config.apiKey) throw new GeminiError("NO_API_KEY", NO_KEY_MESSAGE);
 
@@ -71,11 +72,14 @@ export async function POST(request: Request) {
           hasImage: image !== null,
           durationSec: payload.durationSec,
           timeLimits: payload.timeLimits,
+          previous,
         }),
       });
 
-      const systemInstruction = buildSystemInstruction(payload.mode);
-      const jsonSchema = toGeminiJsonSchema(buildResponseSchema(getRubric(payload.mode)));
+      const systemInstruction = buildSystemInstruction(payload.mode, { followUp: previous !== null });
+      const jsonSchema = toGeminiJsonSchema(
+        buildResponseSchema(getRubric(payload.mode), previous?.items.map((p) => p.id) ?? []),
+      );
       const baseConfig: GenerateContentConfig = {
         systemInstruction,
         responseMimeType: "application/json",
@@ -150,7 +154,7 @@ export async function POST(request: Request) {
         throw new GeminiError("BAD_RESPONSE", `AI가 빈 응답을 보냈습니다${finishReason ? ` (${finishReason})` : ""}. 다시 시도해 주세요.`);
       }
 
-      const report = toReport(parseModelJson(text), payload.mode, payload.durationSec);
+      const report = toReport(parseModelJson(text), payload.mode, payload.durationSec, previous);
       send({
         type: "done",
         report,
@@ -184,15 +188,33 @@ function toUsage(u: GenerateContentResponseUsageMetadata | undefined): TokenUsag
 /** GEMINI_MOCK=1: API 호출 없이 샘플 리포트를 같은 검증 경로로 돌려줌 (화면 흐름 테스트용) */
 async function runMock(payload: AnalyzePayload, send: (e: AnalyzeEvent) => void, signal: AbortSignal, started: number) {
   send({ type: "status", message: "모의 분석 중 (GEMINI_MOCK=1 — 실제 AI 분석이 아닙니다)" });
-  const { mode: _mode, ...body } = structuredClone(SAMPLE_REPORTS[payload.mode]);
+  const { mode: _mode, followUp: _fu, ...body } = structuredClone(SAMPLE_REPORTS[payload.mode]);
   void _mode;
-  const text = JSON.stringify(body);
+  void _fu;
+  const previous = payload.previous ?? null;
+  // 지난 기록과 비교하는 경우: 판정을 돌아가며 채운 샘플
+  const statuses = ["improved", "partly", "not_yet", "not_observed"] as const;
+  const sample = previous
+    ? {
+        ...body,
+        followUp: {
+          items: previous.items.map((p, i) => ({
+            id: p.id,
+            status: statuses[i % statuses.length],
+            evidence: "모의 판정입니다 (실제 AI 분석이 아닙니다).",
+            at: "",
+          })),
+          summary: "모의 분석이라 판정은 예시입니다.",
+        },
+      }
+    : body;
+  const text = JSON.stringify(sample);
   for (let i = 1; i <= 8; i++) {
     await sleep(300, signal);
     if (signal.aborted) return;
     send({ type: "progress", chars: Math.round((text.length * i) / 8) });
   }
-  const report = toReport(parseModelJson(text), payload.mode, null);
+  const report = toReport(parseModelJson(text), payload.mode, null, previous);
   send({
     type: "done",
     report,

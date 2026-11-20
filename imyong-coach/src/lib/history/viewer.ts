@@ -16,6 +16,16 @@ export async function openRecord(id: string): Promise<boolean> {
   return true;
 }
 
+/** 저장된 분석용 영상 지우기 (보고 있던 기록이면 화면에서도 영상을 내림) */
+export async function removeStoredVideos(ids: string[]): Promise<void> {
+  await useHistoryStore.getState().removeVideos(ids);
+  const viewing = useSessionStore.getState().viewing;
+  if (viewing && ids.includes(viewing.record.id) && viewing.videoUrl) {
+    // setViewing이 이전 videoUrl을 해제함
+    useSessionStore.getState().setViewing({ ...viewing, record: { ...viewing.record, hasVideo: false }, videoUrl: null });
+  }
+}
+
 export function closeRecord() {
   useSessionStore.getState().setViewing(null);
 }

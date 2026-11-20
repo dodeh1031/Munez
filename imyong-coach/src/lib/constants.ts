@@ -39,6 +39,14 @@ export const CONDITION_STATUS_META = {
   missed: { label: "미충족", className: "bg-rose-50 text-rose-700 ring-rose-200" },
 } as const;
 
+/** 지난 피드백 반영 판정 */
+export const FOLLOW_UP_STATUS_META = {
+  improved: { label: "개선됨", className: "bg-emerald-50 text-emerald-700 ring-emerald-200" },
+  partly: { label: "일부 개선", className: "bg-amber-50 text-amber-700 ring-amber-200" },
+  not_yet: { label: "아직", className: "bg-rose-50 text-rose-700 ring-rose-200" },
+  not_observed: { label: "판단 불가", className: "bg-slate-50 text-slate-600 ring-slate-200" },
+} as const;
+
 export const CHECK_STATUS_META = {
   pass: { label: "지킴", className: "text-emerald-600" },
   fail: { label: "보완 필요", className: "text-rose-600" },

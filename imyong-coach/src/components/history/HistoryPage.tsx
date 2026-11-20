@@ -4,18 +4,30 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import { ArrowDown, ArrowUp, Download, FileJson, FolderOpen, History, Minus, Trash2, Upload, Video } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Download,
+  FileJson,
+  FolderOpen,
+  History,
+  Minus,
+  Trash2,
+  Upload,
+  Video,
+  VideoOff,
+} from "lucide-react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Tabs } from "@/components/ui/Tabs";
 import { FolderSyncCard } from "@/components/history/FolderSyncCard";
 import { ScoreTrendChart, Sparkline } from "@/components/history/ScoreTrendChart";
+import { StorageCard, useVideoSizes } from "@/components/history/StorageCard";
 import { MODE_META } from "@/lib/constants";
 import { formatBytes, formatSeconds } from "@/lib/format";
-import { storageUsage } from "@/lib/history/db";
 import { downloadHistoryFile, parseHistoryFile } from "@/lib/history/files";
 import { useHistoryStore } from "@/lib/history/store";
 import type { HistoryRecord } from "@/lib/history/types";
-import { openRecord } from "@/lib/history/viewer";
+import { openRecord, removeStoredVideos } from "@/lib/history/viewer";
 import { SCORE_MAX, TONE_CLASS, areaAverage, getRubric, overallScore, toneFor100 } from "@/lib/rubrics";
 import { EVAL_MODES, type EvalMode } from "@/lib/schema/report";
 import { selfOverall } from "@/lib/selfScore";
@@ -61,7 +73,6 @@ export function HistoryPage() {
   const error = useHistoryStore((s) => s.error);
   const [modeChoice, setModeChoice] = useState<EvalMode | null>(null);
   const [notice, setNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
-  const [usage, setUsage] = useState<{ usage: number; quota: number } | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
   const thisMonth = useThisMonth();
   const origin = useOrigin();
@@ -70,15 +81,7 @@ export function HistoryPage() {
     void useHistoryStore.getState().load();
   }, []);
 
-  useEffect(() => {
-    let alive = true;
-    void storageUsage().then((u) => {
-      if (alive) setUsage(u);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [records.length]);
+  const sizes = useVideoSizes(records);
 
   // 기본 탭: 가장 최근 기록의 모드
   const mode: EvalMode = modeChoice ?? records.at(-1)?.mode ?? "demo";
@@ -112,6 +115,16 @@ export function HistoryPage() {
     try {
       await useHistoryStore.getState().remove(r.id);
       setNotice({ tone: "ok", text: "기록을 삭제했어요." });
+    } catch (err) {
+      setNotice({ tone: "error", text: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  async function handleRemoveVideo(r: HistoryRecord) {
+    if (!window.confirm(`${fmtDate(r.createdAt)} 기록의 분석용 영상만 지울까요? 리포트·점수는 그대로 남아요.`)) return;
+    try {
+      await removeStoredVideos([r.id]);
+      setNotice({ tone: "ok", text: "영상을 지웠어요. 리포트·점수는 그대로 남아 있어요." });
     } catch (err) {
       setNotice({ tone: "error", text: err instanceof Error ? err.message : String(err) });
     }
@@ -324,6 +337,7 @@ export function HistoryPage() {
                               {record.hasVideo && (
                                 <span className="inline-flex items-center gap-0.5">
                                   · <Video className="size-3" aria-hidden /> 영상 저장됨
+                                  {sizes?.has(record.id) && ` ${formatBytes(sizes.get(record.id) ?? 0)}`}
                                 </span>
                               )}
                               {record.meta?.model && record.meta.model !== "mock" && <span>· {modelLabel(record.meta.model)}</span>}
@@ -331,6 +345,13 @@ export function HistoryPage() {
                                 <span title={COST_NOTE}>· 약 {formatUsd(recordCost(record)!)}</span>
                               )}
                               {record.source === "imported" && <span>· 가져온 기록</span>}
+                              {record.report.followUp && (
+                                <span title="지난 연습 피드백 중 이번에 개선된 항목 수">
+                                  · 지난 피드백 개선{" "}
+                                  {record.report.followUp.items.filter((i) => i.status === "improved").length}/
+                                  {record.report.followUp.items.length}
+                                </span>
+                              )}
                             </p>
                           </div>
                           {record.selfScore?.mode === record.mode && (
@@ -360,6 +381,17 @@ export function HistoryPage() {
                             >
                               <FileJson className="size-4" />
                             </button>
+                            {record.hasVideo && (
+                              <button
+                                type="button"
+                                onClick={() => void handleRemoveVideo(record)}
+                                aria-label={`${round}회 기록 영상만 지우기`}
+                                title="영상만 지우기 (리포트·점수는 남음)"
+                                className="rounded-lg p-1.5 text-slate-400 ring-1 ring-slate-200 hover:bg-slate-50 hover:text-slate-700"
+                              >
+                                <VideoOff className="size-4" />
+                              </button>
+                            )}
                             <button
                               type="button"
                               onClick={() => void handleDelete(record)}
@@ -379,6 +411,8 @@ export function HistoryPage() {
             )}
           </div>
 
+          <StorageCard records={records} sizes={sizes} />
+
           <div className="space-y-1 text-xs text-slate-500">
             {monthly.count > 0 && (
               <p title={COST_NOTE}>
@@ -390,7 +424,6 @@ export function HistoryPage() {
               기록은 이 브라우저{origin && <>의 이 주소(<b className="text-slate-700">{origin}</b>)</>}에만 저장돼요.
               주소가 다르면(localhost ↔ 127.0.0.1) 기록도 따로 보여요. 사이트 데이터를 지우면 기록도 지워지니 폴더
               동기화를 켜 두거나 가끔 &lsquo;전체 백업&rsquo;을 해 두세요.
-              {usage && ` (현재 사용량 약 ${formatBytes(usage.usage)})`}
             </p>
           </div>
         </div>

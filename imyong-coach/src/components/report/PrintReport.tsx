@@ -5,6 +5,7 @@ import { flushSync } from "react-dom";
 import { Printer } from "lucide-react";
 import { AlternativeList } from "@/components/report/AlternativeList";
 import { ConditionChecks } from "@/components/report/ConditionChecks";
+import { FollowUpCard } from "@/components/report/FollowUpCard";
 import { QuestionEvalList } from "@/components/report/QuestionEvalList";
 import { RubricTable } from "@/components/report/RubricTable";
 import { ScoreOverview } from "@/components/report/ScoreOverview";
@@ -14,7 +15,7 @@ import { SelfScorePanel } from "@/components/report/SelfScorePanel";
 import { SpeechMetricsCard, TranscriptCard } from "@/components/report/SpeechMetricsCard";
 import { TimeUsageCard } from "@/components/report/TimeUsageCard";
 import { MODE_META } from "@/lib/constants";
-import { getRubric } from "@/lib/rubrics";
+import { getRubric, overallScore } from "@/lib/rubrics";
 import type { AnalysisReport } from "@/lib/schema/report";
 import type { SelfScore } from "@/lib/selfScore";
 import { hasLimits, koreanDuration, type TimeLimits } from "@/lib/timeLimits";
@@ -203,6 +204,9 @@ export function PrintableReport({
 
       <div className="space-y-4">
         <ScoreOverview report={report} rubric={rubric} />
+        {report.followUp && (
+          <FollowUpCard followUp={report.followUp} currentOverall={overallScore(rubric, report.scores)} />
+        )}
         {report.mode === "demo" && <ConditionChecks checks={report.conditionChecks} />}
         <TimeUsageCard report={report} durationSec={durationSec} timeLimits={timeLimits} />
         {report.mode === "interview" && <QuestionEvalList questions={report.questions} />}

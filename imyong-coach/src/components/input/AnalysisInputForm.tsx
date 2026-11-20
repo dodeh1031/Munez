@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import { CircleCheck, FileText, Sparkles, Timer, Video } from "lucide-react";
+import { CircleCheck, FileText, History, Sparkles, Timer, Video } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui/Card";
+import { CompareWithPrevious } from "@/components/input/CompareWithPrevious";
 import { ModeToggle } from "@/components/input/ModeToggle";
 import { ModelPicker } from "@/components/input/ModelPicker";
 import { PromptInput } from "@/components/input/PromptInput";
@@ -22,6 +23,7 @@ export function AnalysisInputForm() {
   const hasVideo = useSessionStore((s) => s.video !== null);
   const hasTime = useSessionStore((s) => hasLimits(limitsForMode(s.timeLimits, s.mode)));
   const running = useSessionStore((s) => s.pipeline.status === "running");
+  const comparing = useSessionStore((s) => s.compareWith !== null);
   // 마지막 분석과 입력(모드·문제·영상)이 같으면 다시 분석하지 않고 리포트로 이동 (불필요한 API 비용 방지)
   const unchanged = useSessionStore(
     (s) =>
@@ -31,7 +33,8 @@ export function AnalysisInputForm() {
       s.analyzedInput?.promptText === s.promptText &&
       s.analyzedInput?.image === (s.promptImage?.file ?? null) &&
       sameLimits(s.analyzedInput?.timeLimits, limitsForMode(s.timeLimits, s.mode)) &&
-      s.analyzedInput?.model === s.modelChoice,
+      s.analyzedInput?.model === s.modelChoice &&
+      s.analyzedInput?.compareWith === s.compareWith,
   );
 
   function handleStart() {
@@ -63,6 +66,9 @@ export function AnalysisInputForm() {
             <div className="border-t border-slate-100 pt-4">
               <TimeLimitInput />
             </div>
+            <div className="border-t border-slate-100 pt-4">
+              <CompareWithPrevious />
+            </div>
           </div>
         </Card>
 
@@ -80,6 +86,7 @@ export function AnalysisInputForm() {
             <Check done label={`${MODE_META[mode].label} 모드`} icon={Sparkles} />
             <Check done={hasPrompt} label={hasPrompt ? "문제 입력됨" : "문제 (선택)"} icon={FileText} optional />
             <Check done={hasTime} label={hasTime ? "시간 조건 입력됨" : "시간 조건 (선택)"} icon={Timer} optional />
+            {comparing && <Check done label="지난 피드백 확인" icon={History} />}
             <Check done={hasVideo} label={hasVideo ? "영상 준비됨" : "영상 필요"} icon={Video} />
           </ul>
           <div className="flex items-center gap-2">

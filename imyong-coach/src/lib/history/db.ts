@@ -78,6 +78,35 @@ export async function applyChanges(put: HistoryRecord[], remove: string[]): Prom
   await done(tx);
 }
 
+/** 저장된 분석용 영상의 크기 (id → 바이트). 영상 내용은 읽지 않음 */
+export async function videoSizes(): Promise<Map<string, number>> {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const sizes = new Map<string, number>();
+    const req = db.transaction(VIDEOS, "readonly").objectStore(VIDEOS).openCursor();
+    req.onsuccess = () => {
+      const cursor = req.result;
+      if (!cursor) {
+        resolve(sizes);
+        return;
+      }
+      sizes.set(String(cursor.key), cursor.value instanceof Blob ? cursor.value.size : 0);
+      cursor.continue();
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+/** 영상만 지우기: 영상 삭제 + 해당 기록을 '영상 없음'으로 (리포트는 그대로) */
+export async function clearVideos(ids: string[], records: HistoryRecord[]): Promise<void> {
+  if (ids.length === 0) return;
+  const db = await openDb();
+  const tx = db.transaction([RECORDS, VIDEOS], "readwrite");
+  for (const id of ids) tx.objectStore(VIDEOS).delete(id);
+  for (const r of records) tx.objectStore(RECORDS).put(r);
+  await done(tx);
+}
+
 export async function getVideo(id: string): Promise<Blob | null> {
   const db = await openDb();
   const blob = await request(db.transaction(VIDEOS, "readonly").objectStore(VIDEOS).get(id));

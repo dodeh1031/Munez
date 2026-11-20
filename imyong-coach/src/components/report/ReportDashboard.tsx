@@ -6,6 +6,7 @@ import { ArrowLeft, FileJson, FolderOpen, History, Info, Video, X } from "lucide
 import { Tabs, type TabItem } from "@/components/ui/Tabs";
 import { AlternativeList } from "@/components/report/AlternativeList";
 import { ConditionChecks } from "@/components/report/ConditionChecks";
+import { FollowUpBanner, FollowUpCard } from "@/components/report/FollowUpCard";
 import { PipelineStatus } from "@/components/report/PipelineStatus";
 import { PrintButton, PrintableReport, usePrintMode, type PdfName, type PrintInfo } from "@/components/report/PrintReport";
 import { PromptSummary } from "@/components/report/PromptSummary";
@@ -24,7 +25,7 @@ import { downloadHistoryFile } from "@/lib/history/files";
 import { useHistoryStore } from "@/lib/history/store";
 import { attachOriginalVideo, closeRecord } from "@/lib/history/viewer";
 import { SAMPLE_REPORTS } from "@/lib/mock/sampleReport";
-import { getRubric } from "@/lib/rubrics";
+import { getRubric, overallScore } from "@/lib/rubrics";
 import { modelLabel } from "@/lib/models";
 import type { AnalysisReport } from "@/lib/schema/report";
 import { useSessionStore, type ViewingRecord } from "@/lib/store";
@@ -310,7 +311,16 @@ function DashboardShell({
   );
 }
 
-type TabId = "overview" | "questions" | "rubric" | "segments" | "alternatives" | "speech" | "checklist" | "self";
+type TabId =
+  | "overview"
+  | "followUp"
+  | "questions"
+  | "rubric"
+  | "segments"
+  | "alternatives"
+  | "speech"
+  | "checklist"
+  | "self";
 
 function ReportTabs({ report, timing, self }: { report: AnalysisReport; timing: Timing; self: SelfScoreContext }) {
   const [tab, setTab] = useState<TabId>("overview");
@@ -328,7 +338,10 @@ function ReportTabs({ report, timing, self }: { report: AnalysisReport; timing: 
   const rubric = getRubric(report.mode);
   const altLabel = MODE_META[report.mode].alternativeLabel;
 
-  const tabs: TabItem<TabId>[] =
+  const followUpTab: TabItem<TabId>[] = report.followUp
+    ? [{ id: "followUp", label: "지난 피드백", count: report.followUp.items.length }]
+    : [];
+  const modeTabs: TabItem<TabId>[] =
     report.mode === "demo"
       ? [
           { id: "overview", label: "종합" },
@@ -348,30 +361,37 @@ function ReportTabs({ report, timing, self }: { report: AnalysisReport; timing: 
           { id: "checklist", label: "자기점검표" },
           { id: "self", label: selfDone ? "자기 채점 ✓" : "자기 채점" },
         ];
+  // '지난 피드백' 탭은 종합 바로 다음
+  const tabs = [modeTabs[0], ...followUpTab, ...modeTabs.slice(1)];
+  const current = tab === "followUp" && !report.followUp ? "overview" : tab;
 
   return (
     <div className="min-w-0 space-y-4">
-      <Tabs tabs={tabs} value={tab} onChange={setTab} label="리포트 항목" idPrefix="report" />
-      <div role="tabpanel" id="report-panel" aria-labelledby={`report-tab-${tab}`} className="space-y-6">
-        {tab === "overview" && (
+      <Tabs tabs={tabs} value={current} onChange={setTab} label="리포트 항목" idPrefix="report" />
+      <div role="tabpanel" id="report-panel" aria-labelledby={`report-tab-${current}`} className="space-y-6">
+        {current === "overview" && (
           <>
+            {report.followUp && <FollowUpBanner followUp={report.followUp} onOpen={() => setTab("followUp")} />}
             <ScoreOverview report={report} rubric={rubric} />
             {report.mode === "demo" && <ConditionChecks checks={report.conditionChecks} />}
             <TimeUsageCard report={report} durationSec={timing.durationSec} timeLimits={timing.timeLimits} />
           </>
         )}
-        {tab === "questions" && report.mode === "interview" && <QuestionEvalList questions={report.questions} />}
-        {tab === "rubric" && <RubricTable rubric={rubric} scores={report.scores} />}
-        {tab === "segments" && <SegmentFeedbackList segments={report.segments} rubric={rubric} />}
-        {tab === "alternatives" && <AlternativeList alternatives={report.alternatives} mode={report.mode} />}
-        {tab === "speech" && (
+        {current === "followUp" && report.followUp && (
+          <FollowUpCard followUp={report.followUp} currentOverall={overallScore(rubric, report.scores)} />
+        )}
+        {current === "questions" && report.mode === "interview" && <QuestionEvalList questions={report.questions} />}
+        {current === "rubric" && <RubricTable rubric={rubric} scores={report.scores} />}
+        {current === "segments" && <SegmentFeedbackList segments={report.segments} rubric={rubric} />}
+        {current === "alternatives" && <AlternativeList alternatives={report.alternatives} mode={report.mode} />}
+        {current === "speech" && (
           <>
             <SpeechMetricsCard transcript={report.transcript} mode={report.mode} durationSec={timing.durationSec} />
             <TranscriptCard transcript={report.transcript} />
           </>
         )}
-        {tab === "checklist" && report.mode === "interview" && <SelfChecklist checklist={report.checklist} />}
-        {tab === "self" && (
+        {current === "checklist" && report.mode === "interview" && <SelfChecklist checklist={report.checklist} />}
+        {current === "self" && (
           <SelfScorePanel
             rubric={rubric}
             selfScore={self.score}

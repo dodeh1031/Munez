@@ -8,6 +8,7 @@ import {
   QUESTION_TYPE_IDS,
   QUESTION_TYPES,
 } from "@/lib/rubrics/interview";
+import type { PreviousFeedback } from "@/lib/gemini/events";
 import type { EvalMode } from "@/lib/schema/report";
 import { judgeUsage, koreanDuration, type TimeLimits } from "@/lib/timeLimits";
 
@@ -72,7 +73,14 @@ ${checklist}
 - alternatives: 어느 문항에나 쓸 수 있는 만능틀 답변(예: "~가 중요하다고 생각합니다", "최선을 다하겠습니다", "항상 노력하겠습니다", "학생 중심으로 하겠습니다")을 실제 발화에서 3~6개 찾고, 문제 상황에 맞춘 근거와 실천 방안이 담긴 대체 답변을 씁니다.`;
 }
 
-export function buildSystemInstruction(mode: EvalMode): string {
+const FOLLOW_UP_RULES = `
+[지난 피드백 반영 확인]
+- followUp.items: [지난 연습 피드백]의 항목마다 하나씩, 주어진 순서대로 판정합니다. improved=분명히 고쳐짐, partly=일부만 고쳐짐, not_yet=여전히 같은 문제, not_observed=이번 영상에 그 장면·상황이 없어 판단할 수 없음.
+- evidence에는 이번 영상에서 관찰한 근거(가능하면 실제 발화 인용)를 적고, 해당 장면이 있으면 at에 타임스탬프를 적습니다. 비슷한 상황이 나오지 않았는데 improved로 판정하지 않습니다.
+- 지난 점수나 피드백에 끌려가지 않습니다. scores를 비롯한 다른 항목은 이번 영상만 보고 독립적으로 평가합니다.
+- followUp.summary: 고쳐진 점과 아직 남은 과제를 1~2문장으로 씁니다.`;
+
+export function buildSystemInstruction(mode: EvalMode, options: { followUp?: boolean } = {}): string {
   const rubric = getRubric(mode);
   return `당신은 한국 초등 특수교사 임용시험 2차(심층면접·수업실연) 평가위원이자 특수교육 수업 컨설턴트입니다.
 수험생의 연습 영상을 보고 아래 채점표에 따라 엄정하고 구체적으로 평가해, 수험생이 다음 연습에서 바로 개선할 수 있게 돕습니다.
@@ -80,7 +88,7 @@ ${COMMON_RULES}
 
 [채점표: ${rubric.title}] (scores의 키는 아래 영역 id → 세부 기준 id, 각 1~5점)
 ${rubricText(rubric)}
-${mode === "demo" ? demoInstructions() : interviewInstructions()}`;
+${mode === "demo" ? demoInstructions() : interviewInstructions()}${options.followUp ? `\n${FOLLOW_UP_RULES}` : ""}`;
 }
 
 export function buildUserPrompt(input: {
@@ -89,6 +97,7 @@ export function buildUserPrompt(input: {
   hasImage: boolean;
   durationSec: number | null;
   timeLimits: TimeLimits | null;
+  previous?: PreviousFeedback | null;
 }): string {
   const lines = [
     `평가 모드: ${input.mode === "demo" ? "수업실연" : "심층면접 (구상형·즉답형)"}`,
@@ -100,9 +109,23 @@ export function buildUserPrompt(input: {
     "",
     ...timeConditionLines(input.mode, input.timeLimits, input.durationSec),
     "",
+    ...previousFeedbackLines(input.previous),
     "위 영상을 채점표에 따라 평가해 JSON으로 답하세요.",
   ];
   return lines.filter((l) => l !== null).join("\n");
+}
+
+/** [지난 연습 피드백] 블록 (지난 기록과 비교할 때만) */
+function previousFeedbackLines(previous: PreviousFeedback | null | undefined): string[] {
+  if (!previous?.items.length) return [];
+  const date = new Date(previous.createdAt);
+  const when = Number.isNaN(date.getTime()) ? "" : `${date.toLocaleDateString("ko-KR")} `;
+  return [
+    "[지난 연습 피드백 — 이번 영상에서 반영됐는지 확인]",
+    `같은 문제로 지난번(${when}연습, 종합 ${previous.overall}점)에 받은 피드백입니다. 각 항목이 이번 영상에서 고쳐졌는지 followUp에 판정하세요.`,
+    ...previous.items.map((p) => `- ${p.id} [${p.source}] ${p.text}`),
+    "",
+  ];
 }
 
 /** [시간 조건] 블록: 입력한 제한 시간 + 실제 영상 길이(코드로 계산한 사실) */

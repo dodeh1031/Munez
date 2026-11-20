@@ -114,6 +114,51 @@ export const checklistResultSchema = z.object({
 });
 export type ChecklistResult = z.infer<typeof checklistResultSchema>;
 
+/* 지난 피드백 반영 확인 (같은 문제를 다시 연습했을 때) */
+export const FOLLOW_UP_STATUSES = ["improved", "partly", "not_yet", "not_observed"] as const;
+const followUpStatus = z
+  .enum(FOLLOW_UP_STATUSES)
+  .describe("improved=분명히 개선됨, partly=일부 개선, not_yet=여전히 같은 문제, not_observed=이번 영상에 해당 장면이 없어 판단 불가");
+
+export const followUpItemSchema = z.object({
+  id: z.string(),
+  /** 지난 피드백이 나온 곳 (예: "구간 피드백 02:15") */
+  source: z.string(),
+  /** 지난 피드백 내용 */
+  point: z.string(),
+  status: followUpStatus,
+  evidence: z.string(),
+  at: optionalTimestamp,
+});
+export type FollowUpItem = z.infer<typeof followUpItemSchema>;
+
+export const followUpSchema = z.object({
+  /** 비교한 지난 기록 */
+  base: z.object({ recordId: z.string(), createdAt: z.string(), overall: z.number() }),
+  summary: z.string(),
+  items: z.array(followUpItemSchema),
+});
+export type FollowUp = z.infer<typeof followUpSchema>;
+
+/** 모델에게 받는 부분 (지난 피드백 문구·기준 기록 정보는 코드에서 붙임) */
+function followUpResponseSchema(ids: [string, ...string[]]) {
+  return z
+    .object({
+      items: z
+        .array(
+          z.object({
+            id: z.enum(ids).describe("지난 피드백 항목 id"),
+            status: followUpStatus,
+            evidence: z.string().describe("이번 영상에서 그렇게 판단한 근거 (관찰한 발화·행동)"),
+            at: optionalTimestamp,
+          }),
+        )
+        .describe("지난 피드백 항목마다 하나씩, 주어진 순서대로"),
+      summary: z.string().describe("지난 피드백 반영에 대한 총평 1~2문장"),
+    })
+    .describe("지난 연습 피드백 반영 여부");
+}
+
 // 타입 정합성 확인용 (스키마의 키 목록과 rubrics/interview.ts의 id 목록이 어긋나면 컴파일 에러)
 const _conceptKeysCheck: Record<(typeof CONCEPT_CRITERION_IDS)[number], unknown> = questionEvalShape.scores.shape;
 void _conceptKeysCheck;
@@ -134,6 +179,8 @@ const reportBase = {
   scores: rubricScoresSchema,
   segments: z.array(segmentSchema),
   alternatives: z.array(alternativeSchema),
+  /** 지난 연습과 비교해 분석한 경우에만 */
+  followUp: followUpSchema.optional(),
 };
 
 export const demoReportSchema = z.object({
@@ -164,7 +211,8 @@ function fixedKeys<T extends z.ZodType>(ids: readonly string[], make: (id: strin
  * 속성 순서 = 생성 순서이므로, 관찰(구간·문항) → 채점 → 제안 → 총평 순으로 배치해
  * 모델이 근거를 먼저 정리한 뒤 점수를 매기도록 유도합니다.
  */
-export function buildResponseSchema(rubric: Rubric) {
+export function buildResponseSchema(rubric: Rubric, followUpIds: string[] = []) {
+  const followUp = followUpIds.length ? { followUp: followUpResponseSchema(followUpIds as [string, ...string[]]) } : {};
   const areaIds = rubric.areas.map((a) => a.id) as [string, ...string[]];
 
   const scores = z.object(
@@ -192,6 +240,7 @@ export function buildResponseSchema(rubric: Rubric) {
       conditionChecks: z.array(conditionCheckSchema).describe("수업 조건별 반영 여부"),
       scores,
       alternatives,
+      ...followUp,
       summary,
     });
   }
@@ -203,6 +252,7 @@ export function buildResponseSchema(rubric: Rubric) {
     scores,
     checklist: fixedKeys(CHECKLIST_ITEM_IDS, () => checklistResultSchema).describe("자기점검표"),
     alternatives,
+    ...followUp,
     summary,
   });
 }

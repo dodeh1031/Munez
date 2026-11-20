@@ -20,6 +20,8 @@ interface HistoryState {
   remove: (id: string) => Promise<void>;
   /** 폴더 동기화 결과 반영 */
   applyMerge: (plan: MergePlan) => Promise<void>;
+  /** 분석용 영상만 지움 (리포트·점수는 그대로). 영상은 동기화 대상이 아니라 동기화 신호도 보내지 않음 */
+  removeVideos: (ids: string[]) => Promise<void>;
 }
 
 let loading: Promise<void> | null = null;
@@ -94,6 +96,15 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
     await db.deleteRecord(id);
     addTombstone(id);
     set((s) => ({ records: s.records.filter((r) => r.id !== id), localRevision: s.localRevision + 1 }));
+  },
+
+  removeVideos: async (ids) => {
+    const drop = new Set(ids);
+    const changed = get()
+      .records.filter((r) => drop.has(r.id) && r.hasVideo)
+      .map((r) => ({ ...r, hasVideo: false }));
+    await db.clearVideos(ids, changed);
+    set((s) => ({ records: s.records.map((r) => (drop.has(r.id) ? { ...r, hasVideo: false } : r)) }));
   },
 
   applyMerge: async (plan) => {

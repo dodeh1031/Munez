@@ -53,6 +53,8 @@ export interface AnalyzedInput {
   timeLimits: TimeLimits;
   /** 이번 분석에 쓴 모델 (null = 서버 기본값) */
   model: string | null;
+  /** 피드백 반영 여부를 비교한 지난 기록 id (없으면 null) */
+  compareWith: string | null;
 }
 
 /** 기록 화면에서 연 저장된 분석 (현재 세션과 별개로 리포트 화면에 표시) */
@@ -110,6 +112,10 @@ interface SessionState {
   modelChoice: string | null;
   /** 서버 설정 (기본 모델·선택지·API 키 설정 여부) */
   serverConfig: GeminiClientConfig | null;
+  /** 피드백 반영 여부를 확인할 지난 기록 id (null = 비교 안 함) */
+  compareWith: string | null;
+  /** 사용자가 직접 골랐는지 (아니면 같은 문제 기록을 자동 제안) */
+  compareTouched: boolean;
 
   pipeline: PipelineState;
   processed: ProcessedMedia | null;
@@ -128,6 +134,7 @@ interface SessionState {
   setTimeLimits: (patch: Partial<TimeLimits>, options?: { loaded?: boolean }) => void;
   setModelChoice: (model: string | null) => void;
   setServerConfig: (config: GeminiClientConfig) => void;
+  setCompareWith: (id: string | null, touched: boolean) => void;
   setVideo: (video: Omit<SelectedVideo, "url"> | null) => void;
   setVideoSaved: (saved: boolean) => void;
   setPipeline: (patch: Partial<PipelineState>) => void;
@@ -154,6 +161,8 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
   timeLimitsLoaded: false,
   modelChoice: null,
   serverConfig: null,
+  compareWith: null,
+  compareTouched: false,
 
   pipeline: IDLE_PIPELINE,
   processed: null,
@@ -169,6 +178,7 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
   setPromptText: (promptText) => set({ promptText }),
   setModelChoice: (modelChoice) => set({ modelChoice }),
   setServerConfig: (serverConfig) => set({ serverConfig }),
+  setCompareWith: (compareWith, compareTouched) => set({ compareWith, compareTouched }),
   setTimeLimits: (patch, options) =>
     set((s) => ({ timeLimits: { ...s.timeLimits, ...patch }, timeLimitsLoaded: options?.loaded ?? s.timeLimitsLoaded })),
 
