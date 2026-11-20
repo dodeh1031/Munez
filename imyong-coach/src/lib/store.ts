@@ -101,6 +101,8 @@ interface SessionState {
   promptText: string;
   promptImage: SelectedImage | null;
   video: SelectedVideo | null;
+  /** 웹캠 녹화 원본을 파일로 저장했는지 (안 했으면 창을 닫을 때 경고) */
+  videoSaved: boolean;
   timeLimits: TimeLimits;
   /** 저장된 시간 조건을 이번 세션에 불러왔는지 */
   timeLimitsLoaded: boolean;
@@ -127,6 +129,7 @@ interface SessionState {
   setModelChoice: (model: string | null) => void;
   setServerConfig: (config: GeminiClientConfig) => void;
   setVideo: (video: Omit<SelectedVideo, "url"> | null) => void;
+  setVideoSaved: (saved: boolean) => void;
   setPipeline: (patch: Partial<PipelineState>) => void;
   setProcessed: (media: Omit<ProcessedMedia, "url"> | null) => void;
   setUploaded: (uploaded: UploadedMedia | null) => void;
@@ -146,6 +149,7 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
   promptText: "",
   promptImage: null,
   video: null,
+  videoSaved: false,
   timeLimits: EMPTY_TIME_LIMITS,
   timeLimitsLoaded: false,
   modelChoice: null,
@@ -182,6 +186,7 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
     // 영상이 바뀌면 이전 전처리·분석 결과는 무효 (실행 중인 작업은 pipeline.ts가 감지해 취소)
     set({
       video: video ? { ...video, url: URL.createObjectURL(video.file) } : null,
+      videoSaved: false,
       pipeline: IDLE_PIPELINE,
       processed: null,
       uploaded: null,
@@ -194,6 +199,7 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
     });
   },
 
+  setVideoSaved: (videoSaved) => set({ videoSaved }),
   setPipeline: (patch) => set((s) => ({ pipeline: { ...s.pipeline, ...patch } })),
 
   setProcessed: (media) => {

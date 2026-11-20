@@ -1,0 +1,2 @@
+# Windows 배치 파일은 CRLF 그대로 저장 (LF면 cmd가 줄을 잘못 읽을 수 있음)
+*.bat -text

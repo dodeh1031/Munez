@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { UnloadGuard } from "@/components/layout/UnloadGuard";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,6 +13,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="ko" className="h-full antialiased">
       <body className="flex min-h-full flex-col">
         <AppHeader />
+        <UnloadGuard />
         <main className="flex-1">{children}</main>
       </body>
     </html>

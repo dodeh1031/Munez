@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
@@ -19,11 +19,19 @@ import { openRecord } from "@/lib/history/viewer";
 import { SCORE_MAX, TONE_CLASS, areaAverage, getRubric, overallScore, toneFor100 } from "@/lib/rubrics";
 import { EVAL_MODES, type EvalMode } from "@/lib/schema/report";
 import { selfOverall } from "@/lib/selfScore";
-import { modelLabel } from "@/lib/models";
+import { COST_NOTE, PRICING_AS_OF, estimateCostUsd, formatUsd, modelLabel } from "@/lib/models";
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" });
 const fmtShort = (iso: string) =>
   new Date(iso).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+
+const noopSubscribe = () => () => {};
+const monthKeyOf = (d: Date) => `${d.getFullYear()}-${d.getMonth() + 1}`;
+/** 렌더 중 현재 시각·주소를 읽되 서버 프리렌더에서는 null (Cache Components 안전) */
+const useThisMonth = () => useSyncExternalStore(noopSubscribe, () => monthKeyOf(new Date()), () => null);
+const useOrigin = () => useSyncExternalStore(noopSubscribe, () => window.location.origin, () => null);
+
+const recordCost = (r: HistoryRecord) => (r.meta && !r.meta.mock ? estimateCostUsd(r.meta.model, r.meta.usage) : null);
 
 function Delta({ value, digits = 0, unit = "" }: { value: number; digits?: number; unit?: string }) {
   const rounded = Number(value.toFixed(digits));
@@ -55,6 +63,8 @@ export function HistoryPage() {
   const [notice, setNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [usage, setUsage] = useState<{ usage: number; quota: number } | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
+  const thisMonth = useThisMonth();
+  const origin = useOrigin();
 
   useEffect(() => {
     void useHistoryStore.getState().load();
@@ -83,6 +93,15 @@ export function HistoryPage() {
   const first = rows[0];
   const latest = rows.at(-1);
   const best = rows.reduce<number | null>((m, r) => (m === null || r.overall > m ? r.overall : m), null);
+  // 이번 달 예상 비용 (두 모드 모두, 동기화로 받은 다른 컴퓨터 기록 포함)
+  const monthly = records.reduce(
+    (acc, r) => {
+      if (!thisMonth || monthKeyOf(new Date(r.createdAt)) !== thisMonth) return acc;
+      const c = recordCost(r);
+      return c === null ? acc : { usd: acc.usd + c, count: acc.count + 1 };
+    },
+    { usd: 0, count: 0 },
+  );
 
   async function handleOpen(id: string) {
     if (await openRecord(id)) router.push("/report");
@@ -308,6 +327,9 @@ export function HistoryPage() {
                                 </span>
                               )}
                               {record.meta?.model && record.meta.model !== "mock" && <span>· {modelLabel(record.meta.model)}</span>}
+                              {recordCost(record) !== null && (
+                                <span title={COST_NOTE}>· 약 {formatUsd(recordCost(record)!)}</span>
+                              )}
                               {record.source === "imported" && <span>· 가져온 기록</span>}
                             </p>
                           </div>
@@ -357,11 +379,20 @@ export function HistoryPage() {
             )}
           </div>
 
-          <p className="text-xs text-slate-500">
-            기록은 이 컴퓨터의 이 브라우저에만 저장돼요. 브라우저 방문 기록·사이트 데이터를 지우면 함께 지워지니 폴더
-            동기화를 켜 두거나 가끔 &lsquo;전체 백업&rsquo;을 해 두세요.
-            {usage && ` (현재 사용량 약 ${formatBytes(usage.usage)})`}
-          </p>
+          <div className="space-y-1 text-xs text-slate-500">
+            {monthly.count > 0 && (
+              <p title={COST_NOTE}>
+                이번 달 AI 분석 예상 비용 약 <b className="text-slate-700">{formatUsd(monthly.usd)}</b> · 분석{" "}
+                {monthly.count}회 ({PRICING_AS_OF} 가격 기준 참고값, 실제 청구액은 Google AI Studio에서 확인)
+              </p>
+            )}
+            <p>
+              기록은 이 브라우저{origin && <>의 이 주소(<b className="text-slate-700">{origin}</b>)</>}에만 저장돼요.
+              주소가 다르면(localhost ↔ 127.0.0.1) 기록도 따로 보여요. 사이트 데이터를 지우면 기록도 지워지니 폴더
+              동기화를 켜 두거나 가끔 &lsquo;전체 백업&rsquo;을 해 두세요.
+              {usage && ` (현재 사용량 약 ${formatBytes(usage.usage)})`}
+            </p>
+          </div>
         </div>
       )}
     </div>

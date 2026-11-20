@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import { Camera, CameraOff, Circle, LoaderCircle, Mic, RotateCcw, Square, Trash2, Video } from "lucide-react";
+import { SaveRecordingButton } from "@/components/input/SaveRecordingButton";
+import { useBeforeUnload } from "@/components/layout/UnloadGuard";
 import { MAX_VIDEO_SECONDS } from "@/lib/constants";
 import { formatBytes, formatSeconds, timeStamp } from "@/lib/format";
 import { useSessionStore } from "@/lib/store";
@@ -57,6 +59,10 @@ export function WebcamRecorder() {
   const meterRef = useRef<{ ctx: AudioContext; raf: number } | null>(null);
 
   const recorded = video?.source === "webcam" ? video : null;
+  const videoSaved = useSessionStore((s) => s.videoSaved);
+
+  // 녹화 중에 창을 닫거나 새로고침하면 녹화가 사라지므로 경고
+  useBeforeUnload(phase === "countdown" || phase === "recording" || phase === "saving");
 
   const clearTimers = useCallback(() => {
     timersRef.current.forEach((t) => {
@@ -269,6 +275,14 @@ export function WebcamRecorder() {
           >
             <Trash2 className="size-4" />
           </button>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <SaveRecordingButton />
+          {!videoSaved && (
+            <p className="text-xs text-slate-500">
+              녹화 원본은 새로고침하거나 창을 닫으면 사라져요. 보관하려면 저장하세요(기록에는 분석용 압축본만 남아요).
+            </p>
+          )}
         </div>
       </div>
     );

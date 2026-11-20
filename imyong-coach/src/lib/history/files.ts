@@ -1,5 +1,6 @@
 import { timeStamp } from "@/lib/format";
 import type { AnalysisMeta } from "@/lib/gemini/events";
+import { downloadBlob } from "@/lib/saveFile";
 import {
   HISTORY_FILE_APP,
   historyFileSchema,
@@ -48,16 +49,8 @@ export function buildHistoryFile(records: HistoryRecord[], deleted?: Tombstone[]
 
 /** 기록들을 JSON 파일로 내려받기 (영상은 포함하지 않음 — 다른 컴퓨터로 옮기기·백업용) */
 export function downloadHistoryFile(records: HistoryRecord[], baseName: string) {
-  const url = URL.createObjectURL(new Blob([buildHistoryFile(records)], { type: "application/json" }));
-  const a = document.createElement("a");
-  a.href = url;
   // 일부 브라우저는 download 속성에 한글이 있으면 무시하므로 ASCII 이름 사용
-  a.download = `${baseName}-${timeStamp()}.json`;
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  downloadBlob(new Blob([buildHistoryFile(records)], { type: "application/json" }), `${baseName}-${timeStamp()}.json`);
 }
 
 /** 백업 파일(또는 예전 '리포트 저장' 파일)을 읽어 기록 목록으로 변환 */

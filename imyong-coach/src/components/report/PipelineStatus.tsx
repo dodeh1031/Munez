@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import { Check, CircleAlert, CircleCheck, Download, FileJson, LoaderCircle, RotateCcw, X } from "lucide-react";
+import { SaveRecordingButton } from "@/components/input/SaveRecordingButton";
 import { asciiFileBase, formatBytes, formatSeconds } from "@/lib/format";
 import { downloadHistoryFile, newRecord } from "@/lib/history/files";
 import { useHistoryStore } from "@/lib/history/store";
-import { modelLabel } from "@/lib/models";
+import { COST_NOTE, estimateCostUsd, formatUsd, modelLabel } from "@/lib/models";
 import { cancelAnalysis, startAnalysis } from "@/lib/pipeline";
 import { useSessionStore, type PipelineStep } from "@/lib/store";
 
@@ -115,7 +116,7 @@ export function PipelineStatus() {
                 <code className="rounded bg-slate-100 px-1">imyong-coach/.env.local</code> 파일에{" "}
                 <code className="rounded bg-slate-100 px-1">GEMINI_API_KEY=발급받은키</code> 를 적습니다.
               </li>
-              <li>개발 서버(npm run dev)를 껐다 켠 뒤 다시 시도합니다.</li>
+              <li>프로그램을 껐다 켠 뒤 다시 시도합니다 (시작하기.bat로 켰다면 검은 창을 닫고 다시 실행).</li>
             </ol>
           </div>
         )}
@@ -125,6 +126,7 @@ export function PipelineStatus() {
 
   if (pipeline.status === "complete") {
     const total = pipeline.startedAt && pipeline.finishedAt ? (pipeline.finishedAt - pipeline.startedAt) / 1000 : null;
+    const cost = meta && !meta.mock ? estimateCostUsd(meta.model, meta.usage) : null;
     return (
       <div className={clsx("rounded-2xl border bg-white shadow-sm", meta?.mock ? "border-amber-200" : "border-emerald-200")}>
         <div className="flex flex-wrap items-start gap-3 px-4 py-3.5">
@@ -141,6 +143,12 @@ export function PipelineStatus() {
                   {meta.usage.thoughts ? ` / 추론 ${n(meta.usage.thoughts)}` : ""}
                 </span>
               )}
+              {cost !== null && (
+                <span className="text-slate-500" title={COST_NOTE}>
+                  {" "}
+                  · 예상 비용 약 {formatUsd(cost)}
+                </span>
+              )}
             </p>
             {meta?.mock && (
               <p className="mt-1 text-xs text-amber-700">
@@ -154,7 +162,8 @@ export function PipelineStatus() {
             )}
             <HistorySaveNote />
           </div>
-          <div className="flex shrink-0 flex-wrap gap-1.5">
+          <div className="flex shrink-0 flex-wrap items-start gap-1.5">
+            <SaveRecordingButton />
             <button
               type="button"
               onClick={exportCurrentReport}

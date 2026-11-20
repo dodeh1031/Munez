@@ -153,6 +153,11 @@ export async function connectFolder(): Promise<void> {
   await syncFolder({ interactive: true });
 }
 
+/** 연결한 폴더 (영상 저장 창을 그 폴더에서 열 때 사용, 없으면 null) */
+export function getSyncFolderHandle(): FileSystemDirectoryHandle | null {
+  return handle;
+}
+
 /** 연결 끊기 (이 컴퓨터의 기록과 폴더의 파일은 그대로) */
 export async function disconnectFolder(): Promise<void> {
   handle = null;

@@ -95,7 +95,7 @@ export function ModelPicker() {
       {!config.hasApiKey && !config.mock && (
         <p role="alert" className="flex items-start gap-2 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
           <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-          GEMINI_API_KEY가 설정되지 않았어요. imyong-coach/.env.local에 키를 넣고 개발 서버를 다시 시작해야 분석할 수 있어요.
+          GEMINI_API_KEY가 설정되지 않았어요. imyong-coach/.env.local에 키를 넣고 프로그램을 다시 켜야 분석할 수 있어요(시작하기.bat로 켰다면 검은 창을 닫고 다시 실행).
         </p>
       )}
     </div>
