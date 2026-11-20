@@ -20,6 +20,8 @@ export interface HistoryRecord {
   version: 1;
   /** 분석 완료 시각 (ISO) */
   createdAt: string;
+  /** 마지막으로 내용을 고친 시각 (ISO, 자기 채점 등). 없으면 createdAt — 컴퓨터끼리 합칠 때 더 최근 것을 남기는 기준 */
+  updatedAt?: string;
   mode: EvalMode;
   /** 원본 영상 파일 이름 */
   title: string;
@@ -44,6 +46,7 @@ export const historyRecordSchema = z
     id: z.string().min(1),
     version: z.literal(1).catch(1),
     createdAt: z.string().min(1),
+    updatedAt: z.string().min(1).optional().catch(undefined),
     mode: evalModeSchema,
     title: z.string().catch("이름 없는 영상"),
     promptText: z.string().catch(""),
@@ -57,12 +60,23 @@ export const historyRecordSchema = z
 
 export const HISTORY_FILE_APP = "imyong-coach";
 
+/** 삭제 표시: 다른 컴퓨터와 동기화할 때 지운 기록이 되살아나지 않도록 남겨 둠 */
+export interface Tombstone {
+  id: string;
+  /** 지운 시각 (ISO) */
+  deletedAt: string;
+}
+
+export const tombstoneSchema = z.object({ id: z.string().min(1), deletedAt: z.string().min(1) });
+
 export const historyFileSchema = z.object({
   app: z.literal(HISTORY_FILE_APP),
   kind: z.literal("history"),
   version: z.literal(1),
   exportedAt: z.string(),
   records: z.array(z.unknown()),
+  /** 폴더 동기화 파일에만 있음 */
+  deleted: z.array(z.unknown()).optional(),
 });
 
 /** 3단계에서 만든 '리포트 저장' 파일 형식 (하위 호환용) */

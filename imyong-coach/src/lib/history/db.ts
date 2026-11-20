@@ -65,6 +65,19 @@ export async function putRecord(record: HistoryRecord, video?: Blob | null): Pro
   await done(tx);
 }
 
+/** 여러 기록을 한 번에 넣기·바꾸기·지우기 (가져오기·동기화용, 영상은 건드리지 않음 — 지우는 기록의 영상만 함께 삭제) */
+export async function applyChanges(put: HistoryRecord[], remove: string[]): Promise<void> {
+  if (put.length === 0 && remove.length === 0) return;
+  const db = await openDb();
+  const tx = db.transaction([RECORDS, VIDEOS], "readwrite");
+  for (const r of put) tx.objectStore(RECORDS).put(r);
+  for (const id of remove) {
+    tx.objectStore(RECORDS).delete(id);
+    tx.objectStore(VIDEOS).delete(id);
+  }
+  await done(tx);
+}
+
 export async function getVideo(id: string): Promise<Blob | null> {
   const db = await openDb();
   const blob = await request(db.transaction(VIDEOS, "readonly").objectStore(VIDEOS).get(id));

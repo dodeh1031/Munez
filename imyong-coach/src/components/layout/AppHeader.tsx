@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { GraduationCap } from "lucide-react";
+import { FolderSyncBadge } from "@/components/layout/FolderSyncBadge";
 import { NavLink } from "@/components/layout/NavLink";
 
 export function AppHeader() {
@@ -16,6 +17,7 @@ export function AppHeader() {
           </span>
         </Link>
         <nav className="flex shrink-0 items-center gap-1 text-sm">
+          <FolderSyncBadge />
           <NavLink href="/">새 분석</NavLink>
           <NavLink href="/report">리포트</NavLink>
           <NavLink href="/history">기록</NavLink>

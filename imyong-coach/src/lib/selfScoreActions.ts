@@ -8,8 +8,7 @@ export async function saveSelfScore(score: SelfScore): Promise<void> {
   const history = useHistoryStore.getState();
 
   if (session.viewing) {
-    const record = { ...session.viewing.record, selfScore: score };
-    await history.update(record);
+    const record = await history.update({ ...session.viewing.record, selfScore: score });
     useSessionStore.getState().setViewing({ ...session.viewing, record });
     return;
   }

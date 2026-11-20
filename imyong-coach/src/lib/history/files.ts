@@ -5,7 +5,9 @@ import {
   historyFileSchema,
   historyRecordSchema,
   legacyReportFileSchema,
+  tombstoneSchema,
   type HistoryRecord,
+  type Tombstone,
 } from "@/lib/history/types";
 import type { AnalysisReport, EvalMode } from "@/lib/schema/report";
 import type { SelfScore } from "@/lib/selfScore";
@@ -31,16 +33,22 @@ export function newRecord(input: {
   };
 }
 
-/** 기록들을 JSON 파일로 내려받기 (영상은 포함하지 않음 — 다른 컴퓨터로 옮기기·백업용) */
-export function downloadHistoryFile(records: HistoryRecord[], baseName: string) {
+/** 백업·동기화 파일 내용 (영상은 포함하지 않음). deleted는 폴더 동기화 파일에만 넣음 */
+export function buildHistoryFile(records: HistoryRecord[], deleted?: Tombstone[]): string {
   const data = {
     app: HISTORY_FILE_APP,
     kind: "history",
     version: 1,
     exportedAt: new Date().toISOString(),
     records: records.map((r) => ({ ...r, hasVideo: false })),
+    ...(deleted ? { deleted } : {}),
   };
-  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+  return JSON.stringify(data, null, 2);
+}
+
+/** 기록들을 JSON 파일로 내려받기 (영상은 포함하지 않음 — 다른 컴퓨터로 옮기기·백업용) */
+export function downloadHistoryFile(records: HistoryRecord[], baseName: string) {
+  const url = URL.createObjectURL(new Blob([buildHistoryFile(records)], { type: "application/json" }));
   const a = document.createElement("a");
   a.href = url;
   // 일부 브라우저는 download 속성에 한글이 있으면 무시하므로 ASCII 이름 사용
@@ -54,6 +62,11 @@ export function downloadHistoryFile(records: HistoryRecord[], baseName: string) 
 
 /** 백업 파일(또는 예전 '리포트 저장' 파일)을 읽어 기록 목록으로 변환 */
 export function parseHistoryFile(text: string): HistoryRecord[] {
+  return parseHistoryFileWithDeletions(text).records;
+}
+
+/** 기록 + 삭제 표시까지 읽기 (폴더 동기화용) */
+export function parseHistoryFileWithDeletions(text: string): { records: HistoryRecord[]; deleted: Tombstone[] } {
   let json: unknown;
   try {
     json = JSON.parse(text);
@@ -64,21 +77,20 @@ export function parseHistoryFile(text: string): HistoryRecord[] {
   const legacy = legacyReportFileSchema.safeParse(json);
   if (legacy.success) {
     const l = legacy.data;
-    return [
-      {
-        id: `legacy-${l.savedAt}-${l.report.mode}`,
-        version: 1,
-        createdAt: l.savedAt,
-        mode: l.report.mode,
-        title: l.video ?? "가져온 리포트",
-        promptText: l.promptText ?? "",
-        durationSec: null,
-        report: l.report,
-        meta: (l.meta as AnalysisMeta | undefined) ?? null,
-        hasVideo: false,
-        source: "imported",
-      },
-    ];
+    const record: HistoryRecord = {
+      id: `legacy-${l.savedAt}-${l.report.mode}`,
+      version: 1,
+      createdAt: l.savedAt,
+      mode: l.report.mode,
+      title: l.video ?? "가져온 리포트",
+      promptText: l.promptText ?? "",
+      durationSec: null,
+      report: l.report,
+      meta: (l.meta as AnalysisMeta | undefined) ?? null,
+      hasVideo: false,
+      source: "imported",
+    };
+    return { records: [record], deleted: [] };
   }
 
   const file = historyFileSchema.safeParse(json);
@@ -94,6 +106,13 @@ export function parseHistoryFile(text: string): HistoryRecord[] {
       invalid++;
     }
   }
-  if (records.length === 0) throw new Error(`불러올 수 있는 기록이 없습니다${invalid ? ` (형식 오류 ${invalid}개)` : ""}.`);
-  return records;
+  const deleted = (file.data.deleted ?? []).flatMap((t) => {
+    const parsed = tombstoneSchema.safeParse(t);
+    return parsed.success ? [parsed.data] : [];
+  });
+  // 동기화 파일은 기록이 모두 지워져 비어 있을 수 있음 (삭제 표시만 있음)
+  if (records.length === 0 && (invalid > 0 || file.data.deleted === undefined)) {
+    throw new Error(`불러올 수 있는 기록이 없습니다${invalid ? ` (형식 오류 ${invalid}개)` : ""}.`);
+  }
+  return { records, deleted };
 }

@@ -7,6 +7,7 @@ import clsx from "clsx";
 import { ArrowDown, ArrowUp, Download, FileJson, FolderOpen, History, Minus, Trash2, Upload, Video } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Tabs } from "@/components/ui/Tabs";
+import { FolderSyncCard } from "@/components/history/FolderSyncCard";
 import { ScoreTrendChart, Sparkline } from "@/components/history/ScoreTrendChart";
 import { MODE_META } from "@/lib/constants";
 import { formatBytes, formatSeconds } from "@/lib/format";
@@ -100,12 +101,18 @@ export function HistoryPage() {
   async function handleImport(file: File) {
     try {
       const imported = parseHistoryFile(await file.text());
-      const { added, skipped } = await useHistoryStore.getState().addMany(imported);
+      const { added, updated, unchanged } = await useHistoryStore.getState().importRecords(imported);
+      const parts = [
+        added && `새 기록 ${added}개를 불러왔어요`,
+        updated && `${updated}개는 더 최근에 고친 내용(자기 채점 등)으로 바꿨어요`,
+      ].filter(Boolean);
       setNotice({
         tone: "ok",
-        text: `${added}개 기록을 불러왔어요${skipped ? ` (이미 있는 ${skipped}개는 건너뜀)` : ""}. 가져온 기록에는 영상이 포함되지 않아요.`,
+        text: parts.length
+          ? `${parts.join(", ")}${unchanged ? ` (이미 같은 ${unchanged}개는 그대로)` : ""}. 가져온 기록에는 영상이 포함되지 않아요.`
+          : `새로 불러올 내용이 없어요. 파일의 기록 ${unchanged}개가 이미 이 컴퓨터에 같거나 더 최근 상태로 있어요.`,
       });
-      if (added > 0) setModeChoice(imported.at(-1)?.mode ?? null);
+      if (added + updated > 0) setModeChoice(imported.at(-1)?.mode ?? null);
     } catch (err) {
       setNotice({ tone: "error", text: err instanceof Error ? err.message : String(err) });
     }
@@ -117,7 +124,8 @@ export function HistoryPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">분석 기록</h1>
           <p className="mt-2 text-slate-600">
-            이 컴퓨터의 브라우저에 저장된 분석 결과입니다. 학교·집 컴퓨터 사이에서는 JSON 백업으로 옮길 수 있어요.
+            이 컴퓨터의 브라우저에 저장된 분석 결과입니다. 학교·집 컴퓨터 사이에서는 아래 폴더 동기화나 JSON 백업으로
+            옮길 수 있어요.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -150,6 +158,8 @@ export function HistoryPage() {
           </button>
         </div>
       </div>
+
+      <FolderSyncCard />
 
       {notice && (
         <p
@@ -348,8 +358,8 @@ export function HistoryPage() {
           </div>
 
           <p className="text-xs text-slate-500">
-            기록은 이 컴퓨터의 이 브라우저에만 저장돼요. 브라우저 방문 기록·사이트 데이터를 지우면 함께 지워지니 가끔
-            &lsquo;전체 백업&rsquo;을 해 두세요.
+            기록은 이 컴퓨터의 이 브라우저에만 저장돼요. 브라우저 방문 기록·사이트 데이터를 지우면 함께 지워지니 폴더
+            동기화를 켜 두거나 가끔 &lsquo;전체 백업&rsquo;을 해 두세요.
             {usage && ` (현재 사용량 약 ${formatBytes(usage.usage)})`}
           </p>
         </div>
